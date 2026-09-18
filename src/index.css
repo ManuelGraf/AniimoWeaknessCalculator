@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+/*
+ * Dark-first theme. Element colours are not defined here - they come from
+ * public/data/elements.json and are passed in as the `--el` custom property, so
+ * the palette has exactly one source of truth.
+ */
+@theme {
+  --color-ink-950: #07080b;
+  --color-ink-900: #0b0d12;
+  --color-ink-850: #10131a;
+  --color-ink-800: #161a23;
+  --color-ink-700: #1e2430;
+  --color-ink-600: #2a3140;
+  --color-ink-400: #6b7689;
+  --color-ink-300: #98a2b6;
+  --color-ink-200: #c3cad8;
+  --color-ink-100: #e8ecf4;
+
+  --color-accent: #2ee6a8;
+  --color-accent-dim: #1fa87b;
+
+  /* Damage bands. Warm = you are taking more, cool = you are taking less. */
+  --color-band-crit: #ff4d6d;
+  --color-band-weak: #ff8a3d;
+  --color-band-neutral: #6b7689;
+  --color-band-resist: #3ba9f5;
+  --color-band-immune: #7c6bff;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-ink-950 text-ink-100 font-sans antialiased;
+    background-image:
+      radial-gradient(60rem 30rem at 12% -10%, color-mix(in oklab, var(--color-accent) 9%, transparent), transparent),
+      radial-gradient(50rem 26rem at 92% -6%, color-mix(in oklab, #7c6bff 11%, transparent), transparent);
+    background-attachment: fixed;
+  }
+
+  /* Keep focus rings visible for keyboard users without boxing every click. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 30%, transparent);
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/8 bg-ink-900/70 backdrop-blur-sm;
+    box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 20px 40px -24px rgb(0 0 0 / 0.8);
+  }
+
+  /* An element-tinted pill. Set `--el` inline from the data. */
+  .el-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border font-medium transition;
+    color: var(--el);
+    border-color: color-mix(in oklab, var(--el) 40%, transparent);
+    background: color-mix(in oklab, var(--el) 13%, transparent);
+  }
+
+  .el-chip-on {
+    color: var(--color-ink-950);
+    background: var(--el);
+    border-color: var(--el);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--el) 55%, transparent),
+                0 8px 24px -10px var(--el);
+  }
+}
+
+/* The roster list can get long; keep its scrollbar from looking like Windows 98. */
+@layer utilities {
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-600) transparent;
+  }
+}

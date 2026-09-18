@@ -1,0 +1,17 @@
+{
+  "$comment": "Hand-verified from https://aniimoguide.com/elements. Verified by scripts/sync.mjs on every run.",
+  "multipliers": { "strong": 1.6, "neutral": 1, "resisted": 0.625 },
+  "dualRule": "multiply",
+  "order": ["Fire","Water","Grass","Lightning","Earth","Wind","Dark","Ice","Light"],
+  "elements": {
+    "Fire":      { "color": "#EF4444", "text": "#FF7A6B", "wikiKey": "attributes-fire",     "strongAgainst": ["Grass","Ice"],            "resistedBy": ["Fire","Water","Earth","Light"] },
+    "Water":     { "color": "#5BA4E8", "text": "#7DBEF5", "wikiKey": "attributes-water",    "strongAgainst": ["Fire","Earth"],           "resistedBy": ["Water","Grass","Ice","Light"] },
+    "Grass":     { "color": "#10B981", "text": "#34D9A0", "wikiKey": "attributes-grass",    "strongAgainst": ["Water","Earth"],          "resistedBy": ["Fire","Grass","Light"] },
+    "Lightning": { "color": "#E3C40A", "text": "#F5DB3D", "wikiKey": "attributes-electric", "strongAgainst": ["Water","Wind"],           "resistedBy": ["Lightning","Earth","Ice"] },
+    "Earth":     { "color": "#8A6D4E", "text": "#C79A62", "wikiKey": "attributes-rock",     "strongAgainst": ["Fire","Ice"],             "resistedBy": ["Water","Grass","Earth","Dark"] },
+    "Wind":      { "color": "#2563EB", "text": "#5B8DF6", "wikiKey": "attributes-wind",     "strongAgainst": ["Grass","Dark"],           "resistedBy": ["Lightning","Wind"] },
+    "Dark":      { "color": "#8B5CF6", "text": "#A98BFF", "wikiKey": "attributes-dark",     "strongAgainst": ["Grass","Lightning","Light"], "resistedBy": ["Water","Wind"] },
+    "Ice":       { "color": "#4DC6D6", "text": "#6FDCEA", "wikiKey": "attributes-ice",      "strongAgainst": ["Water","Lightning"],      "resistedBy": ["Fire","Earth","Ice"] },
+    "Light":     { "color": "#F5A623", "text": "#FFBE55", "wikiKey": "attributes-holy",     "strongAgainst": ["Wind","Dark"],            "resistedBy": ["Lightning","Light"] }
+  }
+}

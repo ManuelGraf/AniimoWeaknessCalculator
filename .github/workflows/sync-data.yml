@@ -1,0 +1,49 @@
+name: Refresh Aniimo data
+
+# The wiki gains new Aniimo and forms over time. This re-scrapes on a schedule
+# and commits the result, which in turn triggers the Pages deploy.
+on:
+  schedule:
+    - cron: '17 4 * * 1' # Mondays, 04:17 UTC
+  workflow_dispatch:
+    inputs:
+      wikiOnly:
+        description: 'Use only the official wiki as a source'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # sync exits non-zero if the sources drift in a way it cannot validate,
+      # which fails the job rather than committing bad data.
+      - name: Scrape sources
+        run: npm run ${{ inputs.wikiOnly && 'sync:wiki' || 'sync' }}
+
+      - name: Verify the app still passes against the new data
+        run: npm test
+
+      - name: Commit if anything changed
+        run: |
+          if git diff --quiet -- public/data; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          git commit -m "chore(data): refresh Aniimo database"
+          git push
