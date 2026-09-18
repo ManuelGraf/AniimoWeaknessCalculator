@@ -8,7 +8,21 @@ import { useCallback, useEffect, useState } from 'react';
  *   #/aniimo/glacy        a specific Aniimo (and its form)
  *   #/defense/water+ice   a bare element pairing
  *   #/chart               the full 9x9 chart
+ *
+ * The prerendered pages (scripts/prerender.mjs) are the exception. They are
+ * real files at real paths, so there is no hash to read; each one declares the
+ * route it stands for in `window.__ROUTE__` and the app picks up from there. An
+ * explicit hash still wins, so a link into a prerendered page keeps working.
  */
+declare global {
+  interface Window {
+    /** The route a prerendered page stands for. Absent on the dev server. */
+    __ROUTE__?: Route | null;
+    /** Relative prefix from the current page back to the site root, e.g. `../../`. */
+    __SITE_ROOT__?: string;
+  }
+}
+
 export type Route =
   | { view: 'calc'; kind: 'aniimo'; id: string }
   | { view: 'calc'; kind: 'elements'; elements: string[] }
@@ -35,11 +49,20 @@ export function formatHash(route: Route): string {
   return '#/';
 }
 
+/** The route the app should open on: an explicit hash, else the prerendered page's own. */
+export function initialRoute(): Route {
+  if (window.location.hash) return parseHash(window.location.hash);
+  return window.__ROUTE__ ?? { view: 'calc', kind: 'empty' };
+}
+
 export function useHashRoute(): [Route, (r: Route) => void] {
-  const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
+  const [route, setRoute] = useState<Route>(initialRoute);
 
   useEffect(() => {
-    const onChange = () => setRoute(parseHash(window.location.hash));
+    // Going back past the first in-page navigation empties the hash. On a
+    // prerendered page that should land on the page's own subject again, not
+    // on a blank calculator, so the fallback is the same one used on load.
+    const onChange = () => setRoute(initialRoute());
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);

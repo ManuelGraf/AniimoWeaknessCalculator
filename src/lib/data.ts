@@ -7,7 +7,14 @@ export interface Database {
   meta: Meta;
 }
 
-const url = (file: string) => new URL(`data/${file}`, document.baseURI).href;
+/**
+ * Prerendered pages live at their own paths (`/element/fire/`), so `data/` has
+ * to be resolved against the site root rather than the current directory. The
+ * prerenderer sets `__SITE_ROOT__` to the right number of `../`; the dev server
+ * and the plain index page have none and stay where they are.
+ */
+const url = (file: string) =>
+  new URL(`${window.__SITE_ROOT__ ?? './'}data/${file}`, document.baseURI).href;
 
 export async function loadDatabase(): Promise<Database> {
   const [chart, roster, meta] = await Promise.all([

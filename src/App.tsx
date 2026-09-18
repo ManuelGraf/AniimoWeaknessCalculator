@@ -20,11 +20,25 @@ export default function App() {
     loadDatabase().then(setDb, (e: Error) => setError(e.message));
   }, []);
 
+  // A prerendered page (scripts/prerender.mjs) already answers the question in
+  // plain HTML, and the app mounts above it rather than replacing it: the
+  // headline, summary, questions and cross-links stay on the page for anyone
+  // reading it, crawler or not. Only what the running app genuinely duplicates
+  // is marked `data-app-owns`, and only once there is something to replace it
+  // with, so the page never blanks mid-load.
+  useEffect(() => {
+    if (!db) return;
+    for (const el of document.querySelectorAll('[data-app-owns]')) el.remove();
+  }, [db]);
+
   if (error) return <Fatal message={error} />;
-  if (!db) return <Loading />;
+  if (!db) return isPrerendered() ? null : <Loading />;
 
   return <Ready db={db} route={route} navigate={navigate} />;
 }
+
+/** True on a page written by the prerenderer, which brings its own static copy. */
+const isPrerendered = () => !!document.getElementById('prerender');
 
 type Nav = ReturnType<typeof useHashRoute>[1];
 
@@ -141,7 +155,8 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
         )}
       </main>
 
-      <Footer meta={db.meta} />
+      {/* A prerendered page keeps its own footer, with the same attribution. */}
+      {!isPrerendered() && <Footer meta={db.meta} />}
     </div>
   );
 }
@@ -226,7 +241,21 @@ function Header({ meta, view, onView }: { meta: Database['meta']; view: 'calc' |
           ⚡
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="text-[15px] leading-tight font-semibold">Aniimo Weakness Calculator</h1>
+          {/*
+            On a prerendered page the heading belongs to that page's subject
+            ("Fire type effectiveness in Aniimo"), so the site name steps down
+            to a link home rather than competing as a second h1.
+          */}
+          {isPrerendered() ? (
+            <a
+              href={window.__SITE_ROOT__ ?? './'}
+              className="text-[15px] leading-tight font-semibold hover:text-accent"
+            >
+              Aniimo Weakness Calculator
+            </a>
+          ) : (
+            <h1 className="text-[15px] leading-tight font-semibold">Aniimo Weakness Calculator</h1>
+          )}
           <p className="text-[11px] text-ink-400">
             {meta.counts.forms} forms · synced{' '}
             <time dateTime={meta.generatedAt}>{synced.toLocaleDateString()}</time>

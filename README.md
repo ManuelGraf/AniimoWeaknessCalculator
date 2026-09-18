@@ -4,7 +4,9 @@ Element matchup calculator for [Aniimo](https://aniimo.com). Pick an element pai
 Aniimo by name — and see what hits it hardest, plus what its own moves can hit back.
 
 Static site: React + Vite, deployed to GitHub Pages. The Aniimo database is scraped ahead of time by
-an `npm` script and committed, so the app has no backend.
+an `npm` script and committed, so the app has no backend. The build also writes a static, readable
+page for every element, pairing and Aniimo, so the tool is legible to a crawler that never runs the
+JavaScript.
 
 ## Quick start
 
@@ -42,7 +44,9 @@ alone will not tell you.
 **Full chart** — the raw 9×9 grid, rows attack and columns defend.
 
 State lives in the URL hash (`#/aniimo/glacy`, `#/defense/water+ice`, `#/chart`), so any result can be
-linked. A hash is used rather than paths because GitHub Pages serves no SPA fallback.
+linked. A hash is used rather than paths because GitHub Pages serves no SPA fallback. The same
+lookups also exist as real pages (`/aniimo/glacy/`, `/element/water-ice/`) written at build time —
+see [Static pages](#static-pages).
 
 ## The element chart
 
@@ -144,21 +148,75 @@ aniimoguide. Every entry has both, and the test suite asserts they are still ima
 npm test
 ```
 
-Three suites, no fixtures — they run against the real committed data:
+Four suites, no fixtures — they run against the real committed data:
 
 - `src/lib/chart.test.ts` — matchup maths, including a 729-case check that dual-element order never
   changes the result, and aniimoguide's two published examples.
 - `src/lib/data.test.ts` — database integrity. Every Aniimo has 1–2 known elements, every offensive
   skill has a valid element, and off-element moves survive the merge. This is what catches a bad scrape.
-- `src/App.test.tsx` — renders the app against the real data: search, selection, deep links, chart.
+- `src/App.test.tsx` — renders the app against the real data: search, selection, deep links, chart,
+  and the handover from a prerendered page.
+- `scripts/lib/matchups.test.ts` — the prerenderer restates the matchup maths in plain JS; this
+  checks it against `src/lib/chart.ts` for every attacker against all 45 defender combinations.
+
+## Static pages
+
+The app renders in the browser, which means a crawler that does not execute JavaScript is served an
+empty `<div id="root">`. Google runs JavaScript; most of the AI crawlers that now answer questions
+like *"what is Glacy weak to"* do not. So `npm run build` runs
+[`scripts/prerender.mjs`](scripts/prerender.mjs) after `vite build`, which writes a real page for
+every lookup the tool supports:
+
+```
+/                          calculator, the 9x9 chart, every element at a glance
+/chart/                    the full grid, plus every matchup written out in prose
+/element/fire/             ×9   weak to / resists / strong against, and every Fire Aniimo
+/element/fire-earth/       ×36  dual pairings (the 9 no Aniimo has are noindex)
+/aniimo/                   the whole roster, by element and A–Z
+/aniimo/glacy/             ×226 matchup table, move coverage, stats, habitats
+404.html, robots.txt, sitemap.xml, llms.txt
+```
+
+Each page leads with the answer as a plain sentence — *"Fire is weak to Water and Earth"* — before
+any table, because that sentence is what gets quoted. All of it is generated from
+`public/data/*.json`, so a data refresh updates all 274 pages with no page-specific code.
+
+**None of it is committed.** It lands in `dist/`, which is gitignored and rebuilt by CI on every
+deploy. The only new source file is the generator.
+
+The app does not replace these pages, it mounts above them. Only the parts it genuinely duplicates
+are marked `data-app-owns` in the generated HTML and removed once the database has loaded; the
+heading, summary, questions and cross-links stay, so a crawler that renders JavaScript reads the
+same page as one that does not. Each page also declares its own route in `window.__ROUTE__`, which
+is how `/aniimo/glacy/` opens on Glacy with no hash in the URL.
+
+The generator fails the build on a broken internal link, and warns about titles and descriptions
+that a search result would truncate.
+
+### Changing the domain
+
+[`scripts/lib/site.mjs`](scripts/lib/site.mjs) holds `ORIGIN` and `BASE_PATH`, and nothing else in
+the build reads the URL. Pointing a custom domain at the deployment means editing those two lines
+and adding a `CNAME` file to `public/`.
+
+Two things only work from a domain root, so on `github.io/<repo>/` they are written but ignored:
+`robots.txt` and `llms.txt`. Submit `sitemap.xml` through Google Search Console and Bing Webmaster
+Tools directly until then — an absent `robots.txt` means *crawl everything*, so nothing is blocked
+in the meantime.
+
+### Share images
+
+Aniimo pages use the official stage render as their `og:image`, so they make a real card when
+linked. The other pages have no image unless `public/og.png` exists (1200×630); drop one in and the
+generator picks it up on the next build.
 
 ## Deploying
 
 [`deploy.yml`](.github/workflows/deploy.yml) builds and publishes `dist/` to Pages on every push to
 `main`, after running the tests. Enable it once under **Settings → Pages → Source → GitHub Actions**.
 
-`vite.config.ts` uses a relative `base`, so the build works from a Pages project sub-path without
-naming the repository anywhere.
+`vite.config.ts` uses a relative `base`, and the prerenderer rewrites each page's asset URLs to its
+own depth, so the build works from a Pages project sub-path without naming the repository anywhere.
 
 ## Layout
 
@@ -175,10 +233,17 @@ scripts/
   lib/devalue.mjs     rehydrates Nuxt's flattened payload format
   lib/merge.mjs       merge + validation rules
   lib/chart.mjs       verifies the committed chart against the live source
+  prerender.mjs       writes the static pages, sitemap, robots and llms.txt
+  lib/site.mjs        where the site lives (the only place a URL is written)
+  lib/matchups.mjs    matchup maths in plain JS, mirrored from src/lib/chart.ts
+  lib/html.mjs        page shell: head tags, structured data, stylesheet
+  lib/pages.mjs       the body of each kind of page
 public/data/          the generated database
 ```
 
-The scraper is plain Node with no dependencies and does not import anything from `src/`.
+Both scripts are plain Node with no dependencies and do not import anything from `src/`. That is
+why the matchup maths is restated in `lib/matchups.mjs` rather than imported, and why
+`scripts/lib/matchups.test.ts` exists to keep the two honest.
 
 ## Caveats
 
@@ -187,4 +252,6 @@ The scraper is plain Node with no dependencies and does not import anything from
   coverage; `npm run sync` lists them as warnings.
 - Artwork is hotlinked from the source CDNs rather than vendored, and falls back to a monogram if a
   request fails.
+- `robots.txt` and `llms.txt` are only read from a domain root, so they do nothing on the current
+  `github.io/<repo>/` URL. See [Changing the domain](#changing-the-domain).
 - Not affiliated with Aniimo or Pawprint Studio.

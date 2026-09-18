@@ -18,6 +18,9 @@ const file = (name: string) => readFileSync(resolve(process.cwd(), 'public/data'
 
 beforeEach(() => {
   window.location.hash = '';
+  delete window.__ROUTE__;
+  delete window.__SITE_ROOT__;
+  document.getElementById('prerender')?.remove();
   vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
     const name = String(input).split('/').pop()!;
     return new Response(file(name), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -201,5 +204,120 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByRole('table')).toBeTruthy());
     const rows = within(screen.getByRole('table')).getAllByRole('row');
     expect(rows).toHaveLength(10); // header + nine elements
+  });
+
+  /**
+   * The deployed pages are static HTML written by scripts/prerender.mjs. The
+   * app mounts above that markup rather than replacing it, and clears only the
+   * parts it genuinely duplicates. Getting that wrong has no visible symptom
+   * until a crawler reads either a blank page or the same table twice.
+   */
+  describe('on a prerendered page', () => {
+    const prerender = (route: unknown, root = '../../') => {
+      const div = document.createElement('div');
+      div.id = 'prerender';
+      div.innerHTML = `
+        <header data-app-owns>static header</header>
+        <h1>Fire type effectiveness in Aniimo</h1>
+        <section data-app-owns><h2>Damage taken by a Fire Aniimo</h2></section>
+        <section id="static-faq"><h2>Common questions</h2></section>
+        <footer id="static-footer">Where the numbers come from.</footer>`;
+      document.body.append(div);
+      window.__ROUTE__ = route as Window['__ROUTE__'];
+      window.__SITE_ROOT__ = root;
+    };
+
+    test('opens the route the page stands for, with no hash', async () => {
+      prerender({ view: 'calc', kind: 'aniimo', id: 'glacy' });
+      render(<App />);
+      await ready();
+
+      expect(await screen.findByRole('heading', { name: 'Glacy' })).toBeTruthy();
+      expect(window.location.hash).toBe('');
+    });
+
+    test('an element page opens its own spread', async () => {
+      prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
+      render(<App />);
+      await ready();
+
+      expect(await screen.findByText('Taking damage')).toBeTruthy();
+      const weak = screen.getByRole('region', { name: /^1\.6×/ });
+      expect(within(weak).getByText('Water')).toBeTruthy();
+    });
+
+    test('only the duplicated sections are cleared, and not before the app is ready', async () => {
+      prerender({ view: 'chart' });
+      render(<App />);
+      // Everything is still up while the database is in flight, so a slow
+      // connection never sees the page blank out.
+      expect(document.querySelectorAll('[data-app-owns]')).toHaveLength(2);
+
+      await waitFor(() => expect(document.querySelectorAll('[data-app-owns]')).toHaveLength(0));
+      expect(await screen.findByRole('table')).toBeTruthy();
+
+      // The reference content a crawler came for stays on the page.
+      expect(document.getElementById('static-faq')).toBeTruthy();
+      expect(document.getElementById('static-footer')).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 1, name: /Fire type effectiveness/ })).toBeTruthy();
+    });
+
+    test('the page keeps a single h1, and it is the static page subject', async () => {
+      prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
+      render(<App />);
+      await ready();
+
+      const h1s = screen.getAllByRole('heading', { level: 1 });
+      expect(h1s).toHaveLength(1);
+      expect(h1s[0]!.textContent).toMatch(/Fire type effectiveness/);
+      // The site name steps down to a link home.
+      expect(screen.getByRole('link', { name: /Aniimo Weakness Calculator/ }).getAttribute('href'))
+        .toBe('../../');
+    });
+
+    test('the app does not add a second footer', async () => {
+      prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
+      render(<App />);
+      await ready();
+      expect(document.body.textContent?.match(/Where the numbers come from/g)).toHaveLength(1);
+    });
+
+    test('an explicit hash wins over the page it was opened from', async () => {
+      prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
+      window.location.hash = '#/aniimo/emberpup';
+      render(<App />);
+      await ready();
+
+      expect(await screen.findByRole('heading', { name: 'Emberpup' })).toBeTruthy();
+    });
+
+    test('data is fetched from the site root, not the page directory', async () => {
+      const seen: string[] = [];
+      vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+        seen.push(String(input));
+        return new Response(file(String(input).split('/').pop()!), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      });
+
+      prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
+      render(<App />);
+      await ready();
+
+      // happy-dom serves the document from the origin root, so two levels up
+      // from a /element/fire/ page lands back at /data/.
+      expect(seen.every((u) => new URL(u).pathname.startsWith('/data/'))).toBe(true);
+    });
+
+    test('off a prerendered page the app owns the h1 and the footer', async () => {
+      render(<App />);
+      await ready();
+
+      const h1s = screen.getAllByRole('heading', { level: 1 });
+      expect(h1s).toHaveLength(1);
+      expect(h1s[0]!.textContent).toBe('Aniimo Weakness Calculator');
+      expect(screen.getByText(/Where the numbers come from|Element chart from/)).toBeTruthy();
+    });
   });
 });
