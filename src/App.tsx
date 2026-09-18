@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { createChart } from './lib/chart';
 import { displayName, loadDatabase, moveElements, type Database } from './lib/data';
-import { useHashRoute } from './lib/useHashRoute';
+import { useHashRoute, type Route } from './lib/useHashRoute';
 import type { Aniimo, Element } from './types';
 
 import { AniimoCombobox } from './components/AniimoCombobox';
@@ -30,6 +30,10 @@ type Nav = ReturnType<typeof useHashRoute>[1];
 
 function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof useHashRoute>[0]; navigate: Nav }) {
   const chart = useMemo(() => createChart(db.chart), [db.chart]);
+
+  // Remember what was being inspected so the chart tab is a detour, not a reset.
+  const lastCalc = useRef<Extract<Route, { view: 'calc' }>>({ view: 'calc', kind: 'empty' });
+  if (route.view === 'calc') lastCalc.current = route;
 
   const byId = useMemo(() => new Map(db.roster.map((a) => [a.id, a])), [db.roster]);
 
@@ -59,7 +63,7 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
 
   return (
     <div className="min-h-dvh">
-      <Header meta={db.meta} view={route.view} onView={(v) => navigate(v === 'chart' ? { view: 'chart' } : { view: 'calc', kind: 'empty' })} />
+      <Header meta={db.meta} view={route.view} onView={(v) => navigate(v === 'chart' ? { view: 'chart' } : lastCalc.current)} />
 
       <main className="mx-auto w-full max-w-5xl px-4 pb-16 sm:px-6">
         {route.view === 'chart' ? (

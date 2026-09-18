@@ -126,6 +126,75 @@ describe('App', () => {
     expect(await screen.findByText('Dealing damage')).toBeTruthy();
   });
 
+  test('switching to the chart and back keeps the selection', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/aniimo/glacy';
+    render(<App />);
+    await ready();
+
+    await user.click(screen.getByRole('button', { name: 'Full chart' }));
+    expect(await screen.findByRole('table')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Calculator' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/aniimo/glacy'));
+    expect(await screen.findByRole('heading', { name: 'Glacy' })).toBeTruthy();
+  });
+
+  test('an Aniimo added by a future sync flows through with no code change', async () => {
+    // Everything the UI shows is derived from public/data, so a new entry has
+    // to appear in search, in the count, and at its own deep link on its own.
+    const newcomer = {
+      id: 'zzztest-basic',
+      name: 'Zzztest',
+      morphology: 'Basic Form',
+      number: '999',
+      isBasic: true,
+      stage: 'Lumin',
+      elements: ['Dark', 'Grass'],
+      roles: ['dps'],
+      description: 'A synthetic Aniimo used to prove the app is data-driven.',
+      stats: null,
+      habitats: [],
+      image: 'https://example.invalid/a.png',
+      head: 'https://example.invalid/h.png',
+      animation: null,
+      skills: [
+        { name: 'Test Bolt', description: '', section: 'Combat', element: 'Lightning',
+          power: 90, cost: 0, offensive: true, source: 'wiki' },
+      ],
+      sources: ['wiki'],
+    };
+
+    const roster = [...JSON.parse(file('aniimo.json')), newcomer];
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+      const name = String(input).split('/').pop()!;
+      const body = name === 'aniimo.json' ? JSON.stringify(roster) : file(name);
+      return new Response(body, { status: 200, headers: { 'content-type': 'application/json' } });
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+    await ready();
+
+    // 1. Autocomplete finds it.
+    await user.type(screen.getByRole('combobox'), 'zzztest');
+    const list = await screen.findByRole('listbox');
+    const option = within(list).getAllByRole('option')[0]!;
+    expect(within(option).getByText('Zzztest')).toBeTruthy();
+
+    // 2. Selecting it routes, and both panels score its new element pair.
+    await user.click(option);
+    await waitFor(() => expect(window.location.hash).toBe('#/aniimo/zzztest-basic'));
+    expect(await screen.findByText('Dealing damage')).toBeTruthy();
+
+    // Dark/Grass takes 2.56x from Wind, which is 1.6 into each half.
+    const crit = screen.getByRole('region', { name: /^2\.56×/ });
+    expect(within(crit).getByText('Wind')).toBeTruthy();
+
+    // 3. Its move is scored like any other.
+    expect(screen.getByText('Test Bolt')).toBeTruthy();
+  });
+
   test('the chart view renders all nine rows', async () => {
     window.location.hash = '#/chart';
     render(<App />);
