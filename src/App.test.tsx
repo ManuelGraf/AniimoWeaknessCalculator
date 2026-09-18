@@ -80,6 +80,44 @@ describe('App', () => {
     expect(screen.getByText(/Both element sides are applied/i)).toBeTruthy();
   });
 
+  test('the offence panel scores moves against a two-element target', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/aniimo/emberpup';
+    render(<App />);
+    await ready();
+
+    const targets = await screen.findByRole('group', { name: /target elements/i });
+    await user.click(within(targets).getByRole('button', { name: /Water/ }));
+    await user.click(within(targets).getByRole('button', { name: /Ice/ }));
+
+    // Both stay selected, and the move list is now scored against the pair.
+    expect(await screen.findByText('Moves vs Water / Ice')).toBeTruthy();
+
+    // Emberpup has Fire and Earth moves. Into Water/Ice:
+    //   Fire  = 0.625 (Water resists) x 1.6  (strong vs Ice) = 1x
+    //   Earth = 0.625 (Water resists) x 1.6  (strong vs Ice) = 1x
+    // so the best it can manage is 1x, not a super-effective hit.
+    const summary = screen.getByRole('region', { name: /best result versus Water and Ice/i });
+    expect(within(summary).getByText('1×')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: /clear target/i }));
+    expect(await screen.findByText(/^Attacking moves/)).toBeTruthy();
+  });
+
+  test('a third target element replaces the older one', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/aniimo/emberpup';
+    render(<App />);
+    await ready();
+
+    const targets = await screen.findByRole('group', { name: /target elements/i });
+    await user.click(within(targets).getByRole('button', { name: /Water/ }));
+    await user.click(within(targets).getByRole('button', { name: /Ice/ }));
+    await user.click(within(targets).getByRole('button', { name: /Grass/ }));
+
+    expect(await screen.findByText('Moves vs Ice / Grass')).toBeTruthy();
+  });
+
   test('a deep link restores the selection', async () => {
     window.location.hash = '#/aniimo/emberpup';
     render(<App />);

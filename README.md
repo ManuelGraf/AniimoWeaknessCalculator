@@ -24,8 +24,20 @@ deals: 2.56×, 1.6×, 1×, 0.625×, 0.39×.
 **Offence — "what can this hit?"**
 Scored from the elements an Aniimo's *moves* actually have, not from its own element. That
 distinction matters: Fire-type Emberpup carries an Earth move (Pebble Kick), and Water/Ice Glacy
-carries a Light one (Glimmer Shot), so both cover more than their own typing suggests. Pick a target
-element to rank that Aniimo's moves by `power × multiplier`.
+carries a Light one (Glimmer Shot), so both cover more than their own typing suggests.
+
+Pick **one or two** target elements and the moves are ranked by `power × multiplier` against that
+exact defender. The two together are what make it useful — the best multiplier is often not the best
+move. Hexxin into a Water/Ice defender:
+
+| Move | Element | Multiplier | Effective |
+| --- | --- | --- | --- |
+| Annihilation Bomb | Dark | 0.625× | **103** |
+| Shard Impact | Earth | 1× | 54 |
+| Euphoric Sonic Blast | Grass | 1.6× | 48 |
+
+The super-effective option comes last. Raw power outweighs the matchup here, which a coverage grid
+alone will not tell you.
 
 **Full chart** — the raw 9×9 grid, rows attack and columns defend.
 
@@ -76,8 +88,20 @@ Output lands in `public/data/` and is committed:
 | `aniimo.json` | The roster: elements, roles, stats, skills. Generated. |
 | `meta.json` | Sync timestamp, counts and per-source breakdown. Generated. |
 
-A [scheduled workflow](.github/workflows/sync-data.yml) runs this weekly and commits any changes,
-which triggers a redeploy.
+[`sync-data.yml`](.github/workflows/sync-data.yml) runs this every Monday, commits anything that
+changed, and then **calls the deploy workflow directly**. It has to call it: a push made with the
+default `GITHUB_TOKEN` does not trigger other workflows, so the commit cannot set off the deploy by
+itself.
+
+Two things to know about the schedule:
+
+- GitHub disables `schedule` triggers on a repository after **60 days without activity**. A refresh
+  that finds changes commits, which counts — but a long quiet spell can switch it off. Re-enable it
+  from the Actions tab.
+- Cron is best-effort and often runs late under load. It is a refresh, not a deadline.
+
+You can always run it by hand from the Actions tab (**Refresh Aniimo data → Run workflow**), which
+also exposes the wiki-only option.
 
 ### Sources
 

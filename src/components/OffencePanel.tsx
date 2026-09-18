@@ -19,10 +19,25 @@ const BAND_COLOR: Record<string, string> = {
  * Pebble Kick).
  */
 export function OffencePanel({ chart, aniimo }: { chart: Chart; aniimo: Aniimo }) {
-  const [target, setTarget] = useState<Element | null>(null);
+  // One or two elements, matching how a defender is actually built.
+  const [target, setTarget] = useState<Element[]>([]);
 
   const attackElements = useMemo(() => moveElements(aniimo), [aniimo]);
   const coverage = useMemo(() => chart.offenceSpread(attackElements), [chart, attackElements]);
+
+  const best = useMemo(
+    () => (target.length ? chart.offenceSpread(attackElements, [target])[0]!.best : null),
+    [chart, attackElements, target],
+  );
+
+  const toggleTarget = (el: Element) =>
+    setTarget((cur) =>
+      cur.includes(el)
+        ? cur.filter((e) => e !== el)
+        : cur.length < 2
+          ? [...cur, el]
+          : [cur[1]!, el], // replace the older of the two
+    );
 
   const offensiveSkills = aniimo.skills.filter((s) => s.offensive);
   const untagged = aniimo.skills.filter((s) => s.section === 'Combat' && !s.element);
@@ -38,49 +53,84 @@ export function OffencePanel({ chart, aniimo }: { chart: Chart; aniimo: Aniimo }
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Coverage against each of the nine elements. */}
+      {/* Coverage against each of the nine elements, doubling as the target picker. */}
       <div>
         <h3 className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-ink-400 uppercase">
           Best multiplier vs each element
         </h3>
-        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9">
-          {coverage.map(({ defenders, best }) => {
+        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9" role="group" aria-label="Target elements">
+          {coverage.map(({ defenders, best: single }) => {
             const el = defenders[0]!;
-            const b = band(best.multiplier);
-            const selected = target === el;
+            const b = band(single.multiplier);
+            const selected = target.includes(el);
             return (
               <button
                 key={el}
                 type="button"
                 aria-pressed={selected}
-                onClick={() => setTarget(selected ? null : el)}
+                onClick={() => toggleTarget(el)}
                 className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border p-2 transition
-                            hover:bg-white/6 ${selected ? 'border-accent/60 bg-white/8' : 'border-white/8 bg-white/2'}`}
+                            hover:bg-white/6 ${selected ? 'border-accent/70 bg-white/10' : 'border-white/8 bg-white/2'}`}
                 style={elVars(chart.defs[el])}
-                title={best.element ? `Best with ${best.ties.join(' / ')}` : undefined}
+                title={single.element ? `Best with ${single.ties.join(' / ')}` : undefined}
               >
                 <span className="text-[10px] tracking-wider uppercase" style={{ color: 'var(--el)' }}>
                   {el}
                 </span>
                 <span className="font-mono text-sm font-bold" style={{ color: BAND_COLOR[b.key] }}>
-                  {formatMultiplier(best.multiplier)}
+                  {formatMultiplier(single.multiplier)}
                 </span>
-                {best.element && (
-                  <span className="max-w-full truncate text-[9.5px] text-ink-400">{best.element}</span>
+                {single.element && (
+                  <span className="max-w-full truncate text-[9.5px] text-ink-400">{single.element}</span>
                 )}
               </button>
             );
           })}
         </div>
         <p className="mt-2 text-[11px] text-ink-400">
-          Tap an element to rank this Aniimo&rsquo;s moves against it.
+          Pick one or two elements to score this Aniimo&rsquo;s moves against that exact defender.
+          {target.length === 2 && ' Choosing a third replaces the older one.'}
         </p>
       </div>
 
-      {/* Move list, optionally scored against the chosen target. */}
+      {/* Headline result for the chosen combination. */}
+      {target.length > 0 && best && (
+        <section
+          aria-label={`Best result versus ${target.join(' and ')}`}
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-white/8 bg-white/3 p-3"
+          style={{ borderLeft: `3px solid ${BAND_COLOR[band(best.multiplier).key]}` }}
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] tracking-wider text-ink-400 uppercase">vs</span>
+            {target.map((el) => (
+              <ElementBadge key={el} element={el} def={chart.defs[el]} />
+            ))}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-xl font-bold" style={{ color: BAND_COLOR[band(best.multiplier).key] }}>
+              {formatMultiplier(best.multiplier)}
+            </span>
+            <span className="text-[11px] text-ink-400">
+              {best.element
+                ? `best with ${best.ties.join(' / ')}`
+                : 'no element-tagged move'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTarget([])}
+            className="ml-auto cursor-pointer rounded-lg border border-white/10 px-2.5 py-1 text-[11px]
+                       text-ink-300 hover:bg-white/10 hover:text-ink-100"
+          >
+            Clear target
+          </button>
+        </section>
+      )}
+
+      {/* Move list, ranked against the chosen target. */}
       <div>
         <h3 className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-ink-400 uppercase">
-          {target ? `Moves vs ${target}` : `Attacking moves (${offensiveSkills.length})`}
+          {target.length ? `Moves vs ${target.join(' / ')}` : `Attacking moves (${offensiveSkills.length})`}
         </h3>
         <MoveList chart={chart} skills={offensiveSkills} target={target} />
         {untagged.length > 0 && (
@@ -101,18 +151,18 @@ function MoveList({
 }: {
   chart: Chart;
   skills: Aniimo['skills'];
-  target: Element | null;
+  target: Element[];
 }) {
   const rows = skills
     .map((s) => {
-      const multiplier = target && s.element ? chart.against(s.element, [target]) : null;
+      const multiplier = target.length && s.element ? chart.against(s.element, target) : null;
       // Power is a percentage of the Aniimo's attack stat, so scaling it by the
-      // matchup gives a fair way to rank moves against one target.
+      // matchup gives a fair way to rank moves against one defender.
       const effective = multiplier !== null && s.power !== null ? s.power * multiplier : null;
       return { skill: s, multiplier, effective };
     })
     .sort((a, b) => {
-      if (target) {
+      if (target.length) {
         if (b.effective !== a.effective) return (b.effective ?? -1) - (a.effective ?? -1);
         if (b.multiplier !== a.multiplier) return (b.multiplier ?? 0) - (a.multiplier ?? 0);
       }
@@ -147,9 +197,7 @@ function MoveList({
                   {formatMultiplier(multiplier!)}
                 </span>
                 {effective !== null && (
-                  <span className="font-mono text-[10px] text-ink-400">
-                    {Math.round(effective)} eff.
-                  </span>
+                  <span className="font-mono text-[10px] text-ink-400">{Math.round(effective)} eff.</span>
                 )}
               </span>
             )}

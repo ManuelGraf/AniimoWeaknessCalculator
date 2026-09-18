@@ -4,8 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Callable so the data-refresh workflow can deploy directly. A push made with
+  # the default GITHUB_TOKEN does not trigger other workflows, so the refresh
+  # cannot rely on its own commit to set this off.
+  workflow_call:
 
-# Allow one deployment at a time; let a running one finish rather than cancelling.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -20,6 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Take the branch tip, not the SHA that triggered the run: when called
+          # from the refresh workflow the new data commit is already ahead of it.
+          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
