@@ -13,6 +13,11 @@
       This is the dev shell and the template vite builds from. The deployed
       pages are written by scripts/prerender.mjs, which replaces this head
       wholesale with per-page titles, canonicals and structured data.
+
+      So editing a tag here does NOT change what ships - with one exception:
+      search-engine ownership tags (google-site-verification, msvalidate.01
+      and friends) are copied onto every generated page. Paste the one Search
+      Console or Bing gives you above and rebuild.
     -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%E2%9A%A1</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

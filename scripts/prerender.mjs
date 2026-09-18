@@ -60,6 +60,24 @@ function assetTagsFrom(html) {
   return (up) => tags.map((t) => t.replace(/((?:src|href)=")\.\//g, `$1${up}`)).join('\n');
 }
 
+/**
+ * Carry search-engine ownership tags over from index.html.
+ *
+ * Search Console, Bing and the rest hand you a <meta> tag and tell you to put
+ * it in your home page's <head>. index.html is the obvious place to paste it,
+ * but this generator replaces that head wholesale, so without this the tag
+ * would silently never reach the deployed page. Copying it onto every page
+ * also covers re-verification and any property added later for a subdirectory.
+ */
+function verificationTagsFrom(html) {
+  const known = /^(?:msvalidate\.01|[a-z-]+-site-verification|facebook-domain-verification)$/i;
+  const tags = [];
+  for (const [tag, name] of html.matchAll(/<meta\b[^>]*\bname="([^"]+)"[^>]*>/g)) {
+    if (known.test(name)) tags.push(tag.replace(/\s*\/?>$/, '>'));
+  }
+  return tags;
+}
+
 async function main() {
   const started = Date.now();
 
@@ -67,6 +85,10 @@ async function main() {
     throw new Error('dist/index.html is missing. Run `vite build` first.');
   });
   const assets = assetTagsFrom(shell);
+  const verification = verificationTagsFrom(shell);
+  if (verification.length) {
+    console.log(`  carrying over ${verification.length} site-verification tag(s) from index.html`);
+  }
 
   const [chartData, roster, meta] = await Promise.all([
     readFile(path.join(DATA, 'elements.json'), 'utf8').then(JSON.parse),
@@ -92,6 +114,7 @@ async function main() {
       noindex,
       assets,
       ogImage: img === undefined ? ogImage : img,
+      verification,
       jsonLd: page.jsonLd,
       body: `${header(up, meta)}\n${page.body}\n<div class="wrap">${footer(up, meta)}</div>`,
     });
@@ -213,6 +236,7 @@ async function main() {
     description: 'That URL is not part of the Aniimo weakness calculator.',
     noindex: true,
     assets,
+    verification,
     route: null,
     jsonLd: [],
     body: `${header(root, meta)}\n${notFoundPage({ up: root }).body}`,

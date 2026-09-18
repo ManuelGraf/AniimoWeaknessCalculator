@@ -144,6 +144,8 @@ export function renderPage({
   route,
   noindex = false,
   ogImage = null,
+  // Ownership tags lifted from index.html; see verificationTagsFrom().
+  verification = [],
   // 404.html is served for any unknown path at any depth, so it cannot use a
   // relative prefix; it passes an absolute one and drops its canonical.
   up: upOverride,
@@ -170,12 +172,15 @@ export function renderPage({
     ? 'noindex, follow'
     : 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1';
 
+  // Search Console checks the very top of the head, so these go in first.
+  const ownership = verification.length ? `${verification.join('\n')}\n` : '';
+
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)}</title>
+${ownership}<title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
 ${withCanonical ? `<link rel="canonical" href="${esc(canonical)}">
 ` : ''}<meta name="robots" content="${robots}">

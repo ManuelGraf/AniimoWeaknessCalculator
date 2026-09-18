@@ -204,6 +204,20 @@ Two things only work from a domain root, so on `github.io/<repo>/` they are writ
 Tools directly until then — an absent `robots.txt` means *crawl everything*, so nothing is blocked
 in the meantime.
 
+### Verifying ownership
+
+Search Console and Bing hand you a `<meta>` tag for the home page. Paste it into
+[`index.html`](index.html) and rebuild: the generator replaces that head wholesale, but it copies
+any ownership tag (`google-site-verification`, `msvalidate.01`, `*-site-verification`) onto every
+page it writes. It says so in the build output, which is the quickest way to tell the tag was
+picked up:
+
+```
+  carrying over 1 site-verification tag(s) from index.html
+```
+
+Nothing else edited in `index.html` reaches the deployed pages.
+
 ### Share images
 
 Aniimo pages use the official stage render as their `og:image`, so they make a real card when
