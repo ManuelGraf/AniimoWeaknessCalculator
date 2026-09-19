@@ -120,7 +120,10 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
                         onClick={() => toggleElement(el)}
                       >
                         <ElPlate element={el} size="lg" />
-                        {el}
+                        {/* Hidden on phones, where the bar is one row of glyphs -
+                            visually-hidden rather than removed, so the button
+                            keeps "Fire" as its accessible name. */}
+                        <span className="picker__name">{el}</span>
                       </button>
                     ))}
                   </div>

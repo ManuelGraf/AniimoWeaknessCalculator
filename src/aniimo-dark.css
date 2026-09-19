@@ -581,6 +581,47 @@ a:hover { color: #A9F3E1; text-decoration: underline; }
   .glance__el { width: auto; }
 }
 
+/* Phones: the picker is one row of nine glyphs.
+   A 3x3 block of labelled cards is ~380px tall here and pushes the answer
+   below the fold before anything has been picked. At this width the plate is
+   the whole control - the card chrome comes off, the plate square carries the
+   tint, the border and the pressed glow, and the name goes to the screen
+   reader only so each button still announces as "Fire". */
+@media (max-width: 560px) {
+  .picker { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; }
+
+  .picker__btn {
+    gap: 0; padding: 0;
+    /* Nine across a 360px screen leaves the plate about 28px wide. The button
+       stays 44px tall around it so the tap target is only tight on one axis. */
+    min-height: 44px; justify-content: center;
+    background: none; border-color: transparent; box-shadow: none;
+  }
+  .picker__btn:hover,
+  .picker__btn[aria-pressed="true"] {
+    background: none; border-color: transparent; box-shadow: none;
+  }
+  /* A definite size rather than 100%: the glyph inside is sized in percent,
+     and a percentage of an auto height makes the <svg> fall back to its
+     300x150 default and stretch the plate into a tall pill. The width of one
+     column is (viewport - gutters - card padding - the eight gaps) / 9. */
+  .picker__btn .el-plate {
+    --plate-size: clamp(24px, calc((100vw - 112px) / 9), 48px);
+    --plate-radius: 12px;
+  }
+  /* With the card gone, "picked" has to read off the plate alone: a solid
+     ring, since the soft glow the desktop uses disappears at 28px. */
+  .picker__btn[aria-pressed="true"] .el-plate {
+    background: linear-gradient(160deg, rgb(var(--el-rgb) / 0.48), rgb(var(--el-rgb) / 0.20));
+    box-shadow: var(--shadow-plate), 0 0 0 2px rgb(var(--el-rgb) / 0.9);
+  }
+
+  .picker__name {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
