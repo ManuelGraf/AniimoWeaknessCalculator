@@ -19,7 +19,6 @@
     "sync:check": "node scripts/sync.mjs --dry-run --no-cache"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/node": "^26.6.1",
@@ -27,7 +26,6 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "happy-dom": "^20.14.5",
-    "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"

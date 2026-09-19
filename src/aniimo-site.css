@@ -1,0 +1,509 @@
+/* =========================================================================
+   Aniimo Weakness Calculator — site extensions to the dark theme
+
+   aniimo-dark.css is the delivered design system and is kept byte-for-byte
+   as handed over, so it can be diffed against a redelivery. This file applies
+   that system to the parts of the site the design canvas never saw: the
+   prerendered article pages, the Aniimo combobox, the move list, the band
+   groupings and the calculator chrome.
+
+   Rules for anything added here:
+     - no new colours; every value resolves to a token from section 1 of
+       aniimo-dark.css, or to an element/verdict tint
+     - no new fonts
+     - interactive targets stay >= 44px
+   Load order: aniimo-dark.css, then this file.
+   ========================================================================= */
+
+/* ----------------------------------------------------------------- layout */
+
+.page--narrow { max-width: 960px; }
+
+/* On the plain calculator the site name is the page's h1; on a prerendered
+   page it steps down to a link home. Either way it is brand chrome, not a
+   headline, so it does not take h1 sizing. "Aniimo" is uppercased here rather
+   than in markup so the accessible name and any copied text stay readable. */
+h1.brand { font-size: inherit; font-weight: inherit; letter-spacing: normal; margin: 0; }
+.brand__name { text-transform: uppercase; }
+
+/* A panel heading is a label on a card, not a section headline. */
+.card__head h2 { font-size: 17px; margin: 0; }
+.card__head .muted { margin: 4px 0 0; }
+.card--flow > h2:not(:first-child) { margin-top: 28px; }
+.card--flow h3 { margin-top: 24px; }
+
+/* The sticky glass header needs something coloured behind it to blur.
+   .ambient is a page-level backdrop: a direct child of <body>, pinned to the
+   top 900px of the document, so the glow sits under the header wherever the
+   first real section happens to start. It paints at z-index 0; the header is
+   30 and the content below is 1, so it never covers anything.
+
+   It deliberately does NOT live inside .hero. On a prerendered page the app
+   mounts above the static markup, so the hero is not the first thing on the
+   page and an ambient anchored to it would land halfway down. */
+body { position: relative; }
+#root, #prerender { position: relative; z-index: 1; }
+
+.hero { position: relative; padding-top: clamp(28px, 5vw, 56px); }
+.hero__inner { position: relative; z-index: 1; }
+
+/* The prerendered pages are articles, not dashboards, so the card carries its
+   own padding rather than the head/body split the calculator panels use. */
+.card--flow { padding: clamp(20px, 3vw, 32px); margin-bottom: 20px; }
+.card--flow > :first-child { margin-top: 0; }
+.card--flow > :last-child { margin-bottom: 0; }
+
+.cols { display: grid; gap: 20px; }
+@media (min-width: 720px) { .cols { grid-template-columns: 1fr 1fr; } }
+
+.stack { display: flex; flex-direction: column; gap: 20px; }
+
+/* ------------------------------------------------------------------ prose */
+
+.lede {
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0 0 16px;
+  max-width: 68ch;
+}
+
+.muted { font-size: 13px; color: var(--text-mute); margin: 0 0 12px; }
+
+.prose p { margin: 0 0 12px; color: var(--text-dim); max-width: 72ch; }
+.prose p:last-child { margin-bottom: 0; }
+.prose strong { color: var(--text-strong); font-weight: 600; }
+.prose ul { margin: 0 0 12px; padding-left: 20px; color: var(--text-dim); }
+.prose li { margin-bottom: 6px; }
+
+/* The lead answer — the sentences a search or AI snippet quotes. */
+.answer {
+  margin: 20px 0;
+  padding: 16px 20px;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: rgb(var(--accent-rgb) / 0.07);
+}
+.answer p { margin: 0 0 8px; color: var(--text-dim); font-size: 15px; }
+.answer p:last-child { margin: 0; }
+.answer strong { color: var(--text-strong); font-weight: 600; }
+
+.crumbs { font-size: 12.5px; color: var(--text-mute); margin: 0 0 16px; }
+.crumbs a { color: var(--text-dim); }
+.crumbs a:hover { color: var(--accent); }
+
+/* ------------------------------------------------------------ data tables */
+
+.table-scroll {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  margin-inline: -4px; padding-inline: 4px;
+}
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.data-table caption {
+  text-align: left; padding-bottom: 12px;
+  font-size: 12.5px; color: var(--text-mute);
+}
+.data-table th,
+.data-table td {
+  text-align: left; padding: 10px 12px;
+  border-bottom: 1px solid var(--line-faint);
+}
+.data-table thead th {
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child th,
+.data-table tbody tr:last-child td { border-bottom: 0; }
+.data-table tbody th { font-weight: 500; color: var(--text); }
+.data-table td.num,
+.data-table th.num { text-align: right; }
+.data-table td.num {
+  font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  white-space: nowrap; color: var(--v-text, var(--text));
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------- the 9x9 matrix */
+
+/* The design draws the matrix as a CSS grid. This site serves it to crawlers
+   that never paint a pixel, so it stays a real <table> with scoped headers and
+   is styled to match rather than rebuilt out of divs. */
+
+.matrix-table {
+  border-collapse: separate;
+  border-spacing: 6px;
+  width: 100%;
+  min-width: 720px;
+  text-align: center;
+}
+.matrix-table caption {
+  caption-side: top; text-align: left; padding-bottom: 12px;
+  font-size: 12.5px; color: var(--text-mute);
+}
+.matrix-table th,
+.matrix-table td { padding: 0; border: 0; }
+.matrix-table thead th {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--text-mute); padding-bottom: 2px;
+}
+.matrix-table thead th:first-child {
+  font-family: var(--font-display); font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-mute); text-align: left; white-space: nowrap;
+}
+.matrix-table tbody th { text-align: right; white-space: nowrap; }
+.matrix-table__head { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+.matrix-table td > span {
+  display: flex; align-items: center; justify-content: center;
+  height: 42px; border-radius: 11px;
+  font-family: var(--font-display); font-size: 14px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-text);
+  background: rgb(var(--v-rgb) / 0.14);
+  border: 1px solid rgb(var(--v-rgb) / 0.34);
+}
+.matrix-table td[data-verdict="flat"] > span {
+  color: #5D6980;
+  background: rgba(255, 255, 255, 0.028);
+  border-color: var(--line-faint);
+}
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px;
+  font-size: 12px; color: var(--text-mute);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend b {
+  width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+  background: rgb(var(--v-rgb) / 0.9);
+}
+.legend [data-verdict="flat"] b { background: var(--text-faint); }
+
+/* -------------------------------------------------------------- link sets */
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+
+.roster {
+  display: grid; gap: 6px 20px;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  list-style: none; padding: 0; margin: 12px 0 0;
+  font-size: 14px;
+}
+.roster a { color: var(--text-dim); }
+.roster a:hover { color: var(--accent); }
+
+/* ---------------------------------------------------------- form profile */
+
+.form-hero { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.form-hero__art {
+  width: 108px; height: 108px; flex-shrink: 0;
+  border-radius: var(--r-lg);
+  object-fit: contain; padding: 6px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+}
+.form-hero__body { flex: 1 1 260px; min-width: 0; }
+.form-hero__meta {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 8px;
+}
+.form-hero__no {
+  font-family: var(--font-display); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.08em; color: var(--text-mute);
+}
+
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px; margin: 16px 0 0; padding: 0;
+}
+.stats > div {
+  padding: 10px 12px; border-radius: var(--r-sm);
+  background: var(--surface-subtle); border: 1px solid var(--line-faint);
+}
+.stats dt {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-mute);
+}
+.stats dd {
+  margin: 3px 0 0;
+  font-family: var(--font-display); font-size: 17px; font-weight: 700;
+  color: var(--text-strong); font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- details */
+
+/* The prerendered FAQ is a <details> list so it opens with no JavaScript.
+   Styled to match the design's .faq__item cards. */
+.faq--details { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.faq--details > details {
+  padding: 18px 22px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.faq--details summary {
+  cursor: pointer; list-style: none;
+  font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  color: var(--text-strong);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 28px;
+}
+.faq--details summary::-webkit-details-marker { display: none; }
+.faq--details summary::after {
+  content: "+"; flex-shrink: 0;
+  font-size: 18px; font-weight: 400; line-height: 1; color: var(--text-mute);
+}
+.faq--details details[open] summary::after { content: "\2212"; }
+.faq--details p {
+  margin: 12px 0 0; font-size: 14px; line-height: 1.65; color: var(--text-dim);
+}
+
+/* --------------------------------------------------------------- combobox */
+
+.combo { position: relative; }
+.combo__clear {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  display: grid; place-items: center; cursor: pointer;
+  background: none; border: 0; color: var(--text-mute);
+  font-size: 18px; line-height: 1;
+}
+.combo__clear:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-strong); }
+
+.combo__pop {
+  position: absolute; z-index: 20; top: calc(100% + 8px); left: 0; right: 0;
+  border-radius: var(--r-lg);
+  background: var(--glass-opaque);
+  -webkit-backdrop-filter: blur(18px);
+          backdrop-filter: blur(18px);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-card);
+}
+.combo__empty { margin: 0; padding: 14px 18px; font-size: 14px; color: var(--text-dim); }
+
+.combo__list {
+  list-style: none; margin: 0; padding: 6px;
+  max-height: 22rem; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+}
+.combo__option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer;
+}
+.combo__option[aria-selected="true"] { background: rgba(255, 255, 255, 0.09); }
+.combo__thumb {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--r-pill);
+  object-fit: contain; background: var(--surface-subtle);
+  display: grid; place-items: center;
+  font-size: 11px; color: var(--text-mute);
+}
+.combo__label { min-width: 0; flex: 1 1 auto; }
+.combo__name {
+  display: block; font-size: 14px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.combo__sub {
+  display: block; font-size: 11.5px; color: var(--text-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.combo__els { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ------------------------------------------------------------ band groups */
+
+/* Incoming damage, grouped by how hard it lands. Each band keeps its own label
+   so 2.56x stays distinguishable from 1.6x even though both are
+   data-verdict="bad", and 0.39x from 0.625x on the "good" side. */
+.bands { display: flex; flex-direction: column; gap: 10px; }
+
+.band {
+  display: grid; grid-template-columns: 7.5rem 1fr; align-items: center; gap: 16px;
+  padding: 14px 16px; border-radius: var(--r-lg);
+  background: rgb(var(--v-rgb) / 0.07);
+  border: 1px solid rgb(var(--v-rgb) / 0.26);
+  border-left: 3px solid rgb(var(--v-rgb) / 0.85);
+}
+[data-verdict="flat"].band {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+  border-left-color: var(--text-faint);
+}
+.band__mult {
+  font-family: var(--font-display); font-size: 21px; font-weight: 700;
+  line-height: 1; color: var(--v-text); font-variant-numeric: tabular-nums;
+}
+.band__blurb { margin-top: 5px; font-size: 11.5px; color: var(--text-mute); }
+.band__items { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 560px) {
+  .band { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* ---------------------------------------------------------------- offence */
+
+.coverage { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 8px; }
+
+.coverage__btn {
+  appearance: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; min-height: 76px; padding: 10px 6px;
+  border-radius: var(--r-md);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  font-family: inherit;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.coverage__btn:hover { background: rgb(var(--el-rgb) / 0.08); border-color: rgb(var(--el-rgb) / 0.35); }
+.coverage__btn[aria-pressed="true"] {
+  background: rgb(var(--el-rgb) / 0.12);
+  border-color: rgb(var(--el-rgb) / 0.6);
+  box-shadow: 0 0 30px -12px rgb(var(--el-rgb) / 1);
+}
+.coverage__el {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--el);
+}
+.coverage__mult {
+  font-family: var(--font-display); font-size: 15px; font-weight: 700;
+  color: var(--v-text); font-variant-numeric: tabular-nums;
+}
+.coverage__via {
+  font-size: 10.5px; color: var(--text-mute);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.best {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+  padding: 14px 16px; border-radius: var(--r-lg);
+  background: rgb(var(--v-rgb) / 0.08);
+  border: 1px solid rgb(var(--v-rgb) / 0.28);
+  border-left: 3px solid rgb(var(--v-rgb) / 0.85);
+}
+[data-verdict="flat"].best {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+  border-left-color: var(--text-faint);
+}
+.best__vs { display: flex; align-items: center; gap: 8px; }
+.best__label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-mute);
+}
+.best__mult {
+  font-family: var(--font-display); font-size: 22px; font-weight: 700;
+  color: var(--v-text); font-variant-numeric: tabular-nums;
+}
+.best__via { font-size: 11.5px; color: var(--text-mute); }
+.best__clear { margin-left: auto; }
+
+.moves { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.move {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: var(--r-md);
+  background: var(--surface-subtle); border: 1px solid var(--line-faint);
+}
+.move__body { min-width: 0; flex: 1 1 auto; }
+.move__name {
+  display: block; font-size: 14px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.move__meta {
+  display: block; font-size: 11.5px; color: var(--text-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.move__score { flex-shrink: 0; text-align: right; }
+.move__mult {
+  display: block;
+  font-family: var(--font-display); font-size: 15px; font-weight: 700;
+  color: var(--v-text); font-variant-numeric: tabular-nums;
+}
+.move__eff { display: block; font-size: 11px; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------- calculator chrome */
+
+.eyebrow {
+  display: block; margin-bottom: 10px;
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-mute);
+}
+
+.view-toggle {
+  display: flex; gap: 4px; padding: 4px; border-radius: var(--r-md);
+  background: var(--surface-subtle); border: 1px solid var(--line);
+}
+.view-toggle button {
+  appearance: none; cursor: pointer;
+  min-height: 36px; padding-inline: 14px; border-radius: var(--r-sm);
+  border: 0; background: none;
+  font-family: var(--font-body); font-size: 13.5px; font-weight: 500;
+  color: var(--text-dim);
+}
+.view-toggle button:hover { color: var(--text-strong); }
+.view-toggle button[aria-current] {
+  color: var(--accent-ink); font-weight: 700;
+  background: linear-gradient(170deg, #8CF0D8, var(--accent-deep));
+}
+
+.selection {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 18px; padding: 14px;
+  border-radius: var(--r-lg);
+  background: var(--surface-subtle); border: 1px solid var(--line-faint);
+}
+.selection__art {
+  width: 84px; height: 84px; flex-shrink: 0; border-radius: var(--r-md);
+  object-fit: contain; padding: 4px;
+  display: grid; place-items: center;
+  font-size: 13px; color: var(--text-mute);
+  background: var(--surface-subtle);
+}
+.selection__body { flex: 1 1 200px; min-width: 0; }
+.selection__name {
+  font-family: var(--font-display); font-size: 17px; font-weight: 700;
+  color: var(--text-strong); margin: 0;
+}
+.selection__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.note { font-size: 12px; color: var(--text-mute); margin: 8px 0 0; }
+.empty { text-align: center; padding: 48px 16px; font-size: 15px; color: var(--text-mute); }
+
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 4px 10px; border-radius: var(--r-pill);
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-mute);
+  border: 1px solid var(--line);
+}
+
+/* ----------------------------------------------------------------- footer */
+
+.site-footer > .page { display: flex; gap: 32px; justify-content: space-between; flex-wrap: wrap; }
+.site-footer .foot-note { max-width: 62ch; }
+.site-footer .foot-note p + p { margin-top: 10px; }
+.site-footer code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; padding: 2px 6px; border-radius: 5px;
+  background: rgba(255, 255, 255, 0.07); color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 1080px) {
+  .coverage { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .coverage { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .form-hero__art { width: 84px; height: 84px; }
+
+  /* The header is one flex row of nowrap items - brand, view toggle, nav and
+     the status chip. Left alone it cannot shrink below their combined width
+     and pushes the whole document wider than the viewport, which shows up as
+     horizontal page scroll on a phone. The design already hides .nav and
+     .brand__sub here; the status chip goes too (the same "N forms, synced
+     <date>" is in the footer), and the toggle is allowed to compress. */
+  .site-header { gap: 12px; }
+  .status-chip { display: none; }
+  .view-toggle button { padding-inline: 10px; font-size: 13px; }
+  .brand { min-width: 0; }
+  .brand__name { font-size: 15px; letter-spacing: 0.1em; }
+}

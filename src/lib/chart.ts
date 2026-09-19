@@ -118,6 +118,25 @@ export function band(multiplier: number): Band {
   return BANDS.find((b) => m >= b.min) ?? BANDS[BANDS.length - 1]!;
 }
 
+export type Verdict = 'bad' | 'good' | 'flat';
+
+/**
+ * The single switch every multiplier-coloured component reads, mirrored from
+ * verdict() in scripts/lib/html.mjs so the static page and the app colour a
+ * number the same way. Read from the number, never from the text: "bad" takes
+ * more damage, "good" resists, "flat" is neutral.
+ *
+ * It holds for duals too - 2.56 and 1.6 are both bad, 0.625 and 0.391 are both
+ * good, and 0.625 x 1.6 comes out flat on its own. The band label is what
+ * keeps 2.56x distinguishable from 1.6x; see BANDS above.
+ */
+export function verdict(multiplier: number): Verdict {
+  const m = round(multiplier);
+  if (m > 1) return 'bad';
+  if (m < 1) return 'good';
+  return 'flat';
+}
+
 /** "2.56x", "1x", "0.391x" - trims the noise from floating point products. */
 export function formatMultiplier(n: number): string {
   const m = round(n);

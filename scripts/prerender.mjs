@@ -104,7 +104,7 @@ async function main() {
   /** Every page produced, indexed or not, for the link check at the end. */
   const allPages = [];
 
-  async function emit({ rel, title, description, page, route, noindex = false, ogImage: img, priority, changefreq }) {
+  async function emit({ rel, title, description, page, route, noindex = false, ogImage: img, priority, changefreq, nav = null }) {
     const up = upTo(rel);
     const html = renderPage({
       rel,
@@ -116,7 +116,7 @@ async function main() {
       ogImage: img === undefined ? ogImage : img,
       verification,
       jsonLd: page.jsonLd,
-      body: `${header(up, meta)}\n${page.body}\n<div class="wrap">${footer(up, meta)}</div>`,
+      body: `${header(up, meta, nav)}\n${page.body}\n${footer(up, meta)}`,
     });
 
     const file = path.join(DIST, rel, 'index.html');
@@ -147,6 +147,7 @@ async function main() {
       'Every Aniimo matchup in one grid: which element deals 1.6×, which is resisted to 0.625×, and how dual-element defenders reach 2.56× or 0.39×.',
     page: chartPage({ chart, meta, up: upTo(paths.chart) }),
     route: { view: 'chart' },
+    nav: 'chart',
     priority: '0.9',
     changefreq: 'monthly',
   });
@@ -157,6 +158,7 @@ async function main() {
     description: `Every Aniimo form, including regional and Prismana variants, each with its elements, weaknesses, resistances and move coverage.`,
     page: rosterPage({ chart, roster, meta, up: upTo(paths.roster) }),
     route: null,
+    nav: 'aniimo',
     priority: '0.8',
     changefreq: 'weekly',
   });
@@ -239,7 +241,7 @@ async function main() {
     verification,
     route: null,
     jsonLd: [],
-    body: `${header(root, meta)}\n${notFoundPage({ up: root }).body}`,
+    body: `${header(root, meta)}\n${notFoundPage({ up: root }).body}\n${footer(root, meta)}`,
   });
   await writeFile(path.join(DIST, '404.html'), notFoundHtml, 'utf8');
 

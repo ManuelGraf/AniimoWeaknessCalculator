@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" id="aniimo-sprite" style="display:none" aria-hidden="true">
   <!-- Aniimo element + role glyphs. Vector traces of the source artwork.
        Each symbol paints with currentColor, so size and colour come from CSS:
          <svg class="icon"><use href="#el-fire"></use></svg>

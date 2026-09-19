@@ -1,0 +1,591 @@
+/* =========================================================================
+   Aniimo Weakness Calculator — dark theme
+   Tokens and components matching the design canvas.
+
+   Load order:
+     1. the Google Fonts link (see FONTS below, in <head>, before this file)
+     2. this file
+     3. any page-specific overrides
+
+   Nothing here targets an existing class name from the current site — the
+   selectors are all new, so this can land beside the old stylesheet while
+   templates are migrated one at a time.
+   ========================================================================= */
+
+/* FONTS — put this in <head>, it can't live in a stylesheet without a
+   render-blocking @import:
+
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+*/
+
+/* -------------------------------------------------------------------------
+   1. Tokens
+   ------------------------------------------------------------------------- */
+
+:root {
+  /* ground and surfaces */
+  --bg:              #070A10;
+  --surface:         rgba(13, 18, 29, 0.72);
+  --surface-solid:   #0D121D;
+  --surface-raised:  rgba(17, 23, 36, 0.72);
+  --surface-subtle:  rgba(255, 255, 255, 0.035);
+  --glass:           rgba(11, 16, 26, 0.64);
+  --glass-opaque:    rgba(11, 16, 26, 0.94);
+
+  /* lines */
+  --line:            rgba(255, 255, 255, 0.09);
+  --line-strong:     rgba(255, 255, 255, 0.14);
+  --line-faint:      rgba(255, 255, 255, 0.06);
+  --highlight:       rgba(255, 255, 255, 0.10);   /* inset top edge on glass */
+
+  /* text — all pass 4.5:1 on --bg */
+  --text:            #E9EDF5;
+  --text-strong:     #F6F8FC;
+  --text-dim:        #A9B6CC;
+  --text-mute:       #8FA0BA;
+  --text-faint:      #6B7790;   /* 24px+ or non-essential only */
+
+  /* accent */
+  --accent:          #6FE7CC;
+  --accent-deep:     #4FD9BC;
+  --accent-ink:      #06231D;   /* text on a filled accent button */
+  --accent-rgb:      111 231 204;
+
+  /* verdicts */
+  --bad:             #FF6B6B;
+  --bad-text:        #FF8A7A;
+  --bad-rgb:         255 107 107;
+  --good:            var(--accent-deep);
+  --good-text:       var(--accent);
+  --good-rgb:        var(--accent-rgb);
+  --flat-text:       #94A2BA;
+
+  /* type */
+  --font-display: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
+  --font-body:    'Manrope', ui-sans-serif, system-ui, sans-serif;
+
+  /* radii */
+  --r-sm: 10px;
+  --r-md: 13px;
+  --r-lg: 18px;
+  --r-xl: 22px;
+  --r-2xl: 24px;
+  --r-pill: 9999px;
+
+  /* shadows */
+  --shadow-card:  0 40px 80px -50px rgba(0, 0, 0, 0.9);
+  --shadow-glass: inset 0 1px 0 var(--highlight), 0 18px 40px -18px rgba(0, 0, 0, 0.85);
+  --shadow-plate: inset 0 1px 0 rgba(255, 255, 255, 0.20);
+
+  /* layout */
+  --page-max: 1240px;
+  --gutter: 24px;
+  --header-h: 72px;
+}
+
+/* -------------------------------------------------------------------------
+   2. Element palette
+   One attribute sets both the hex and the rgb triplet, so every element-tinted
+   component below is written once and coloured by its data-el ancestor:
+       <span class="el-plate el-plate--md" data-el="fire">
+   ------------------------------------------------------------------------- */
+
+[data-el]            { --el: rgb(var(--el-rgb)); }
+[data-el="fire"]     { --el-rgb: 255 122  69; }
+[data-el="water"]    { --el-rgb:  79 155 255; }
+[data-el="grass"]    { --el-rgb:  98 214 106; }
+[data-el="lightning"]{ --el-rgb: 255 201  60; }
+[data-el="earth"]    { --el-rgb: 217 162 107; }
+[data-el="wind"]     { --el-rgb: 123 232 196; }
+[data-el="dark"]     { --el-rgb: 183 156 255; }
+[data-el="ice"]      { --el-rgb: 143 216 240; }
+[data-el="light"]    { --el-rgb: 255 233 160; }
+
+/* roles use the same mechanism */
+[data-role]              { --el: rgb(var(--el-rgb)); }
+[data-role="dps"]        { --el-rgb: 255 107 107; }
+[data-role="heal"]       { --el-rgb:  98 214 106; }
+[data-role="support"]    { --el-rgb: 111 231 204; }
+[data-role="break"]      { --el-rgb: 255 201  60; }
+[data-role="regen"]      { --el-rgb: 183 156 255; }
+
+/* -------------------------------------------------------------------------
+   3. Base
+   ------------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--text-strong);
+  line-height: 1.15;
+  margin: 0 0 0.4em;
+}
+h1 { font-size: clamp(34px, 5vw, 60px); font-weight: 700; letter-spacing: -0.015em; }
+h2 { font-size: clamp(24px, 3vw, 30px); font-weight: 700; }
+h3 { font-size: 16px; font-weight: 600; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: #A9F3E1; text-decoration: underline; }
+
+:where(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+.page { max-width: var(--page-max); margin-inline: auto; padding-inline: var(--gutter); }
+
+.section { padding-block: clamp(36px, 6vw, 56px) 0; }
+
+/* -------------------------------------------------------------------------
+   4. Ambient field
+   The blur on the header only reads if something colourful sits behind it.
+   Put .ambient as the first child of the hero wrapper (position: relative).
+   ------------------------------------------------------------------------- */
+
+.ambient { position: absolute; inset: 0 0 auto; height: 900px; pointer-events: none; overflow: hidden; z-index: 0; }
+.ambient::before,
+.ambient::after {
+  content: ""; position: absolute; border-radius: var(--r-pill);
+}
+.ambient::before {
+  top: -260px; left: 8%; width: 760px; height: 760px;
+  background: radial-gradient(circle, rgba(79,155,255,0.30), rgba(79,155,255,0) 68%);
+}
+.ambient::after {
+  top: -200px; right: 4%; width: 720px; height: 720px;
+  background: radial-gradient(circle, rgba(255,122,69,0.22), rgba(255,122,69,0) 68%);
+}
+.ambient__grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: linear-gradient(#000, transparent);
+          mask-image: linear-gradient(#000, transparent);
+}
+
+/* -------------------------------------------------------------------------
+   5. Glass header
+   ------------------------------------------------------------------------- */
+
+.site-header {
+  position: sticky; top: 0; z-index: 30;
+  min-height: var(--header-h);
+  display: flex; align-items: center; gap: 28px;
+  padding-inline: clamp(16px, 3vw, 40px);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
+          backdrop-filter: blur(22px) saturate(165%);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-glass);
+}
+
+/* Browsers without backdrop-filter get the opaque fill instead of a
+   see-through bar with unreadable text behind it. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .site-header { background: var(--glass-opaque); }
+}
+
+.site-header[data-scrolled="true"] {
+  background: var(--glass-opaque);
+  border-bottom-color: var(--line-strong);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
+.brand:hover { text-decoration: none; }
+.brand__mark {
+  width: 40px; height: 40px; border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: linear-gradient(150deg,
+              rgba(255,158,107,0.20), rgba(111,231,204,0.20) 52%, rgba(183,156,255,0.22));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 0 26px -6px rgba(var(--accent-rgb) / 0.75);
+}
+.brand__mark svg { width: 23px; height: 23px; display: block; }
+.brand__text { display: flex; flex-direction: column; line-height: 1.1; }
+.brand__name {
+  font-family: var(--font-display); font-weight: 700; font-size: 16px;
+  letter-spacing: 0.14em; color: var(--text-strong);
+}
+.brand__sub {
+  font-size: 11px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--text-mute);
+}
+
+.nav { display: flex; align-items: center; gap: 4px; }
+.nav a {
+  padding: 10px 14px; border-radius: var(--r-sm);
+  font-size: 14px; font-weight: 500; color: var(--text-dim); text-decoration: none;
+}
+.nav a:hover { color: var(--text-strong); background: rgba(255,255,255,0.05); text-decoration: none; }
+.nav a[aria-current] {
+  color: var(--text-strong); font-weight: 600;
+  background: rgba(255,255,255,0.09); border: 1px solid var(--highlight);
+}
+
+.header-spacer { flex: 1 1 auto; }
+
+.status-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding-inline: 12px; border-radius: var(--r-md);
+  background: rgb(var(--accent-rgb) / 0.10);
+  border: 1px solid rgb(var(--accent-rgb) / 0.26);
+  font-size: 12px; font-weight: 600; color: #8FE8D2; white-space: nowrap;
+}
+.status-chip::before {
+  content: ""; width: 6px; height: 6px; border-radius: var(--r-pill);
+  background: var(--accent); box-shadow: 0 0 10px 1px rgb(var(--accent-rgb) / 0.9);
+}
+
+/* -------------------------------------------------------------------------
+   6. Inputs and buttons
+   ------------------------------------------------------------------------- */
+
+.field {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 44px; padding-inline: 14px; border-radius: var(--r-md);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.field:focus-within { border-color: rgb(var(--accent-rgb) / 0.55); }
+.field input {
+  flex: 1 1 auto; min-width: 0; height: 42px;
+  background: none; border: 0; outline: none;
+  color: var(--text); font: inherit; font-size: 14px;
+}
+.field input::placeholder { color: var(--text-mute); }
+.field svg { width: 16px; height: 16px; color: var(--text-mute); flex-shrink: 0; }
+.field--lg { min-height: 52px; padding-inline: 18px; border-radius: 14px; }
+.field--lg input { height: 50px; font-size: 15px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding-inline: 22px; border-radius: 14px;
+  font-family: var(--font-body); font-size: 15px; font-weight: 700;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { text-decoration: none; }
+.btn--primary {
+  color: var(--accent-ink);
+  background: linear-gradient(170deg, #8CF0D8, var(--accent-deep));
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: 0 0 30px -8px rgb(var(--accent-rgb) / 0.8);
+}
+.btn--primary:hover { filter: brightness(1.06); }
+.btn--ghost {
+  color: var(--text); background: var(--surface-subtle); border: 1px solid var(--line);
+}
+
+/* -------------------------------------------------------------------------
+   7. Cards
+   ------------------------------------------------------------------------- */
+
+.card {
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+.card--raised {
+  border-radius: var(--r-2xl);
+  background: var(--surface-raised);
+  -webkit-backdrop-filter: blur(18px);
+          backdrop-filter: blur(18px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), 0 40px 80px -40px rgba(0,0,0,0.9);
+}
+.card__head {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 24px clamp(16px, 3vw, 32px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,0.025);
+}
+.card__body { padding: 24px clamp(16px, 3vw, 32px) 28px; }
+
+/* -------------------------------------------------------------------------
+   8. Element and role plates
+   One markup shape, four sizes:
+     <span class="el-plate el-plate--md" data-el="water">
+       <svg class="icon"><use href="#el-water"></use></svg>
+     </span>
+   ------------------------------------------------------------------------- */
+
+.icon { width: 1em; height: 1em; display: block; fill: currentColor; }
+
+.el-plate {
+  --plate-size: 40px;
+  --plate-radius: var(--r-md);
+  width: var(--plate-size); height: var(--plate-size);
+  border-radius: var(--plate-radius);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: var(--el);
+  background: linear-gradient(160deg, rgb(var(--el-rgb) / 0.26), rgb(var(--el-rgb) / 0.07));
+  border: 1px solid rgb(var(--el-rgb) / 0.38);
+  box-shadow: var(--shadow-plate);
+}
+.el-plate .icon { width: 55%; height: 55%; }
+
+.el-plate--xs { --plate-size: 30px; --plate-radius: var(--r-sm); }
+.el-plate--sm { --plate-size: 38px; --plate-radius: 12px; }
+.el-plate--md { --plate-size: 40px; --plate-radius: var(--r-md); }
+.el-plate--lg { --plate-size: 52px; --plate-radius: 16px; }
+.el-plate--role { --plate-size: 44px; --plate-radius: 14px; }
+
+.el-plate[data-active="true"] {
+  border-color: rgb(var(--el-rgb) / 0.85);
+  box-shadow: var(--shadow-plate), 0 0 26px -4px rgb(var(--el-rgb) / 0.95);
+}
+
+/* chip: plate-free inline label, used in the at-a-glance table */
+.el-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: var(--r-pill);
+  font-size: 12.5px; font-weight: 600; color: var(--el);
+  background: rgb(var(--el-rgb) / 0.12);
+  border: 1px solid rgb(var(--el-rgb) / 0.32);
+  text-decoration: none;
+}
+.el-chip:hover { background: rgb(var(--el-rgb) / 0.20); text-decoration: none; color: var(--el); }
+
+.role-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px 6px 8px; border-radius: var(--r-pill);
+  font-family: var(--font-display); font-size: 13px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--el);
+  background: rgb(var(--el-rgb) / 0.12);
+  border: 1px solid rgb(var(--el-rgb) / 0.32);
+}
+.role-chip__mark {
+  width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--el-rgb) / 0.20);
+}
+.role-chip__mark .icon { width: 15px; height: 15px; }
+
+/* -------------------------------------------------------------------------
+   9. Element picker
+   Real <button>s — never a div with a click handler; Tab has to reach them.
+   ------------------------------------------------------------------------- */
+
+.picker { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 12px; }
+
+.picker__btn {
+  appearance: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 16px 8px 14px; min-height: 112px;
+  border-radius: var(--r-lg);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+  font-family: var(--font-display); font-size: 13px; font-weight: 600;
+  letter-spacing: 0.05em; color: var(--text-dim);
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.picker__btn:hover { background: rgb(var(--el-rgb) / 0.06); border-color: rgb(var(--el-rgb) / 0.35); }
+.picker__btn[aria-pressed="true"] {
+  background: rgb(var(--el-rgb) / 0.10);
+  border-color: rgb(var(--el-rgb) / 0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 0 40px -14px rgb(var(--el-rgb) / 1);
+  color: var(--el);
+}
+.picker__btn[aria-pressed="true"] .el-plate {
+  border-color: rgb(var(--el-rgb) / 0.85);
+  box-shadow: var(--shadow-plate), 0 0 26px -4px rgb(var(--el-rgb) / 0.95);
+}
+
+/* -------------------------------------------------------------------------
+   10. Verdicts — result cards, pills, matrix cells
+   data-verdict is the single switch: "bad" (takes more), "good" (resists),
+   "flat" (neutral). Set it server-side from the multiplier.
+   ------------------------------------------------------------------------- */
+
+[data-verdict="bad"]  { --v-rgb: var(--bad-rgb);  --v-text: var(--bad-text); }
+[data-verdict="good"] { --v-rgb: var(--good-rgb); --v-text: var(--good-text); }
+[data-verdict="flat"] { --v-rgb: 255 255 255;     --v-text: var(--flat-text); }
+
+.results { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 10px; }
+
+.result {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 8px 14px; border-radius: var(--r-lg);
+  background: rgb(var(--v-rgb) / 0.09);
+  border: 1px solid rgb(var(--v-rgb) / 0.32);
+}
+[data-verdict="flat"].result { background: var(--surface-subtle); border-color: var(--line); }
+
+.result__name {
+  margin-top: 10px; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim);
+}
+.result__mult {
+  margin-top: 10px; font-family: var(--font-display);
+  font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: var(--v-text);
+}
+.result__verdict {
+  margin-top: 2px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; color: var(--v-text); opacity: 0.85;
+}
+
+.mult-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: var(--r-pill);
+  font-size: 12px; font-weight: 600; color: var(--v-text);
+  background: rgb(var(--v-rgb) / 0.13);
+  border: 1px solid rgb(var(--v-rgb) / 0.30);
+}
+[data-verdict="flat"].mult-pill { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+.mult-pill::before {
+  content: ""; width: 7px; height: 7px; border-radius: var(--r-pill);
+  background: rgb(var(--v-rgb) / 1);
+}
+[data-verdict="flat"].mult-pill::before { background: var(--text-faint); }
+
+/* -------------------------------------------------------------------------
+   11. At-a-glance table
+   Semantic <table> at desktop; stacks into labelled blocks on narrow screens.
+   ------------------------------------------------------------------------- */
+
+.glance { width: 100%; border-collapse: collapse; }
+.glance th, .glance td { text-align: left; padding: 14px clamp(12px, 2vw, 24px); vertical-align: middle; }
+.glance thead th {
+  font-family: var(--font-display); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-mute);
+  background: rgba(255,255,255,0.045);
+  border-bottom: 1px solid var(--line);
+}
+.glance tbody tr { border-bottom: 1px solid var(--line-faint); }
+.glance tbody tr:last-child { border-bottom: 0; }
+.glance tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
+.glance__el { display: flex; align-items: center; gap: 12px; width: 210px; }
+.glance__el a {
+  font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  color: var(--text-strong); text-decoration: none;
+}
+.glance__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* -------------------------------------------------------------------------
+   12. Full 9x9 matrix
+   Rows attack, columns defend. Scrolls sideways rather than shrinking below
+   legibility; the row header column stays put.
+   ------------------------------------------------------------------------- */
+
+.matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.matrix {
+  --matrix-label: 150px;
+  min-width: 720px;
+  display: grid;
+  grid-template-columns: var(--matrix-label) repeat(9, minmax(52px, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+.matrix__corner {
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint);
+}
+.matrix__head { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.matrix__head span { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--text-mute); }
+.matrix__row-label { display: flex; align-items: center; gap: 10px; }
+.matrix__row-label span { font-size: 13px; font-weight: 600; color: #D6DEEC; }
+
+.matrix__cell {
+  display: flex; align-items: center; justify-content: center;
+  height: 42px; border-radius: 11px;
+  font-family: var(--font-display); font-size: 14px; font-weight: 600;
+  color: var(--v-text);
+  background: rgb(var(--v-rgb) / 0.14);
+  border: 1px solid rgb(var(--v-rgb) / 0.34);
+}
+[data-verdict="flat"].matrix__cell {
+  color: #5D6980; background: rgba(255,255,255,0.028); border-color: var(--line-faint);
+}
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* -------------------------------------------------------------------------
+   13. FAQ
+   ------------------------------------------------------------------------- */
+
+.faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.faq__item { padding: 22px 24px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+.faq__item p { margin: 0; font-size: 14px; line-height: 1.65; color: #9AA8BF; }
+
+/* -------------------------------------------------------------------------
+   14. Footer
+   ------------------------------------------------------------------------- */
+
+.site-footer {
+  margin-top: clamp(40px, 7vw, 72px);
+  padding-block: 40px;
+  border-top: 1px solid var(--line);
+  background: rgba(9, 13, 21, 0.8);
+}
+.site-footer p { margin: 0; font-size: 13px; line-height: 1.6; color: #7D8CA6; max-width: 560px; }
+.site-footer nav { display: flex; gap: 24px; }
+.site-footer a { font-size: 13px; font-weight: 600; }
+
+/* -------------------------------------------------------------------------
+   15. Responsive
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 1080px) {
+  .picker  { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .results { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  :root { --header-h: 64px; --gutter: 16px; }
+
+  .picker  { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .faq     { grid-template-columns: 1fr; }
+
+  .nav { display: none; }             /* replace with a disclosure menu */
+  .brand__sub { display: none; }
+  .site-footer > .page { flex-direction: column; align-items: flex-start; gap: 20px; }
+
+  /* glance table stacks */
+  .glance, .glance tbody, .glance tr, .glance td { display: block; width: 100%; }
+  .glance thead { display: none; }
+  .glance tbody tr {
+    padding: 16px; margin-bottom: 12px;
+    border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface);
+  }
+  .glance td { padding: 6px 0; }
+  .glance td[data-label]::before {
+    content: attr(data-label) "";
+    display: block; margin-bottom: 6px;
+    font-family: var(--font-display); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute);
+  }
+  .glance__el { width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+/* The design is dark-only by intent. If a light theme is ever added, redefine
+   the tokens in section 1 under a :root[data-theme="light"] block — no
+   component rule below section 2 hard-codes a ground or text colour. */

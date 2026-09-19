@@ -1,16 +1,8 @@
 import { useMemo, useState } from 'react';
-import { band, formatMultiplier, type Chart } from '../lib/chart';
+import { band, formatMultiplier, verdict, type Chart } from '../lib/chart';
 import type { Aniimo, Element } from '../types';
 import { moveElements } from '../lib/data';
-import { ElementBadge, elVars } from './ElementBadge';
-
-const BAND_COLOR: Record<string, string> = {
-  x256: 'var(--color-band-crit)',
-  x16: 'var(--color-band-weak)',
-  x1: 'var(--color-band-neutral)',
-  x0625: 'var(--color-band-resist)',
-  x039: 'var(--color-band-immune)',
-};
+import { ElPlate } from './ElementBadge';
 
 /**
  * What this Aniimo can actually do back. Coverage is computed from the elements
@@ -44,7 +36,7 @@ export function OffencePanel({ chart, aniimo }: { chart: Chart; aniimo: Aniimo }
 
   if (!attackElements.length) {
     return (
-      <p className="rounded-xl border border-white/6 bg-white/2 p-4 text-sm text-ink-300">
+      <p className="empty">
         No element-tagged attacking moves are recorded for this form, so there is nothing to score.
         {untagged.length > 0 && ' Its combat moves are listed without an element on the source site.'}
       </p>
@@ -52,16 +44,13 @@ export function OffencePanel({ chart, aniimo }: { chart: Chart; aniimo: Aniimo }
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="stack">
       {/* Coverage against each of the nine elements, doubling as the target picker. */}
       <div>
-        <h3 className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-ink-400 uppercase">
-          Best multiplier vs each element
-        </h3>
-        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9" role="group" aria-label="Target elements">
+        <h3 className="eyebrow">Best multiplier vs each element</h3>
+        <div className="coverage" role="group" aria-label="Target elements">
           {coverage.map(({ defenders, best: single }) => {
             const el = defenders[0]!;
-            const b = band(single.multiplier);
             const selected = target.includes(el);
             return (
               <button
@@ -69,25 +58,19 @@ export function OffencePanel({ chart, aniimo }: { chart: Chart; aniimo: Aniimo }
                 type="button"
                 aria-pressed={selected}
                 onClick={() => toggleTarget(el)}
-                className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border p-2 transition
-                            hover:bg-white/6 ${selected ? 'border-accent/70 bg-white/10' : 'border-white/8 bg-white/2'}`}
-                style={elVars(chart.defs[el])}
+                className="coverage__btn"
+                data-el={el.toLowerCase()}
+                data-verdict={verdict(single.multiplier)}
                 title={single.element ? `Best with ${single.ties.join(' / ')}` : undefined}
               >
-                <span className="text-[10px] tracking-wider uppercase" style={{ color: 'var(--el)' }}>
-                  {el}
-                </span>
-                <span className="font-mono text-sm font-bold" style={{ color: BAND_COLOR[b.key] }}>
-                  {formatMultiplier(single.multiplier)}
-                </span>
-                {single.element && (
-                  <span className="max-w-full truncate text-[9.5px] text-ink-400">{single.element}</span>
-                )}
+                <span className="coverage__el">{el}</span>
+                <span className="coverage__mult">{formatMultiplier(single.multiplier)}</span>
+                {single.element && <span className="coverage__via">{single.element}</span>}
               </button>
             );
           })}
         </div>
-        <p className="mt-2 text-[11px] text-ink-400">
+        <p className="note">
           Pick one or two elements to score this Aniimo&rsquo;s moves against that exact defender.
           {target.length === 2 && ' Choosing a third replaces the older one.'}
         </p>
@@ -97,31 +80,22 @@ export function OffencePanel({ chart, aniimo }: { chart: Chart; aniimo: Aniimo }
       {target.length > 0 && best && (
         <section
           aria-label={`Best result versus ${target.join(' and ')}`}
-          className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-white/8 bg-white/3 p-3"
-          style={{ borderLeft: `3px solid ${BAND_COLOR[band(best.multiplier).key]}` }}
+          className="best"
+          data-verdict={verdict(best.multiplier)}
         >
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] tracking-wider text-ink-400 uppercase">vs</span>
+          <div className="best__vs">
+            <span className="best__label">vs</span>
             {target.map((el) => (
-              <ElementBadge key={el} element={el} def={chart.defs[el]} />
+              <ElPlate key={el} element={el} size="sm" />
             ))}
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-xl font-bold" style={{ color: BAND_COLOR[band(best.multiplier).key] }}>
-              {formatMultiplier(best.multiplier)}
-            </span>
-            <span className="text-[11px] text-ink-400">
-              {best.element
-                ? `best with ${best.ties.join(' / ')}`
-                : 'no element-tagged move'}
+          <div className="best__vs">
+            <span className="best__mult">{formatMultiplier(best.multiplier)}</span>
+            <span className="best__via">
+              {best.element ? `best with ${best.ties.join(' / ')}` : 'no element-tagged move'}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setTarget([])}
-            className="ml-auto cursor-pointer rounded-lg border border-white/10 px-2.5 py-1 text-[11px]
-                       text-ink-300 hover:bg-white/10 hover:text-ink-100"
-          >
+          <button type="button" onClick={() => setTarget([])} className="btn btn--ghost best__clear">
             Clear target
           </button>
         </section>
@@ -129,12 +103,12 @@ export function OffencePanel({ chart, aniimo }: { chart: Chart; aniimo: Aniimo }
 
       {/* Move list, ranked against the chosen target. */}
       <div>
-        <h3 className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-ink-400 uppercase">
+        <h3 className="eyebrow">
           {target.length ? `Moves vs ${target.join(' / ')}` : `Attacking moves (${offensiveSkills.length})`}
         </h3>
         <MoveList chart={chart} skills={offensiveSkills} target={target} />
         {untagged.length > 0 && (
-          <p className="mt-2.5 text-[11px] text-ink-400">
+          <p className="note">
             {untagged.length} further combat {untagged.length === 1 ? 'move is' : 'moves are'} listed
             without an element and {untagged.length === 1 ? 'is' : 'are'} not scored here.
           </p>
@@ -170,35 +144,28 @@ function MoveList({
     });
 
   return (
-    <ul className="flex flex-col gap-1.5">
+    <ul className="moves">
       {rows.map(({ skill, multiplier, effective }) => {
         const b = multiplier !== null ? band(multiplier) : null;
         return (
           <li
             key={`${skill.name}-${skill.section}`}
-            className="flex items-center gap-3 rounded-xl border border-white/6 bg-white/2 px-3 py-2"
+            className="move"
+            data-verdict={multiplier !== null ? verdict(multiplier) : undefined}
           >
-            {skill.element && (
-              <span className="flex-shrink-0">
-                <ElementBadge element={skill.element} def={chart.defs[skill.element]} />
-              </span>
-            )}
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">{skill.name}</span>
-              <span className="block truncate text-[11px] text-ink-400">
+            {skill.element && <ElPlate element={skill.element} size="xs" />}
+            <span className="move__body">
+              <span className="move__name">{skill.name}</span>
+              <span className="move__meta">
                 {skill.section}
                 {skill.power !== null && ` · power ${skill.power}`}
                 {skill.cost ? ` · cost ${skill.cost}` : ''}
               </span>
             </span>
             {b && (
-              <span className="flex flex-shrink-0 flex-col items-end">
-                <span className="font-mono text-sm font-bold" style={{ color: BAND_COLOR[b.key] }}>
-                  {formatMultiplier(multiplier!)}
-                </span>
-                {effective !== null && (
-                  <span className="font-mono text-[10px] text-ink-400">{Math.round(effective)} eff.</span>
-                )}
+              <span className="move__score">
+                <span className="move__mult">{formatMultiplier(multiplier!)}</span>
+                {effective !== null && <span className="move__eff">{Math.round(effective)} eff.</span>}
               </span>
             )}
           </li>

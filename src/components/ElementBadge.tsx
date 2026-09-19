@@ -1,51 +1,92 @@
-import type { CSSProperties } from 'react';
-import type { Element, ElementDef } from '../types';
+/**
+ * The element and role primitives.
+ *
+ * Nothing here takes a colour. An element carries `data-el` and a role carries
+ * `data-role`; the stylesheet turns that attribute into the tint, the border,
+ * the glow and the icon colour (src/aniimo-dark.css, sections 2 and 8). The
+ * same markup shapes are emitted by scripts/lib/html.mjs for the prerendered
+ * pages, so the static page and the app paint identically.
+ */
+import type { Element } from '../types';
 
-/** Inline custom property consumed by the `.el-chip` rules in index.css. */
-export const elVars = (def: ElementDef | undefined): CSSProperties =>
-  ({ '--el': def?.text ?? '#98a2b6' }) as CSSProperties;
+const slug = (s: string) => s.toLowerCase();
 
-interface Props {
+/** A glyph from the sprite inlined at the top of <body>. */
+export const Icon = ({ id }: { id: string }) => (
+  <svg className="icon" aria-hidden="true">
+    <use href={`#${id}`} />
+  </svg>
+);
+
+type PlateSize = 'xs' | 'sm' | 'md' | 'lg';
+
+/** The square element plate. */
+export function ElPlate({
+  element,
+  size = 'md',
+  active,
+}: {
   element: Element;
-  def: ElementDef | undefined;
-  size?: 'sm' | 'md';
+  size?: PlateSize;
   active?: boolean;
-  onClick?: () => void;
-  disabled?: boolean;
-}
-
-export function ElementBadge({ element, def, size = 'sm', active, onClick, disabled }: Props) {
-  const pad = size === 'sm' ? 'px-2.5 py-1 text-[11px]' : 'px-3.5 py-2 text-sm';
-  const classes = `el-chip ${active ? 'el-chip-on' : ''} ${pad} uppercase tracking-wider`;
-
-  if (!onClick) {
-    return (
-      <span className={classes} style={elVars(def)}>
-        <Dot />
-        {element}
-      </span>
-    );
-  }
-
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={!!active}
-      className={`${classes} cursor-pointer disabled:cursor-not-allowed disabled:opacity-35 hover:brightness-125`}
-      style={elVars(def)}
+    <span
+      className={`el-plate el-plate--${size}`}
+      data-el={slug(element)}
+      data-active={active ? 'true' : undefined}
     >
-      <Dot />
-      {element}
-    </button>
+      <Icon id={`el-${slug(element)}`} />
+    </span>
   );
 }
 
-const Dot = () => (
-  <span
-    aria-hidden="true"
-    className="size-1.5 rounded-full"
-    style={{ background: 'currentColor', boxShadow: '0 0 6px currentColor' }}
-  />
-);
+/** The inline element pill: glyph plus name. */
+export function ElChip({ element }: { element: Element }) {
+  return (
+    <span className="el-chip" data-el={slug(element)}>
+      <Icon id={`el-${slug(element)}`} />
+      {element}
+    </span>
+  );
+}
+
+/**
+ * Role badge. The data calls the support role "sup" while the artwork calls it
+ * "support", and "energy" appears in the data with no glyph and no colour
+ * token in the design - it falls back to a plain tag rather than borrowing
+ * another role's icon. Mirrored in scripts/lib/html.mjs.
+ */
+const ROLE_GLYPH: Record<string, string> = {
+  dps: 'dps',
+  heal: 'heal',
+  sup: 'support',
+  break: 'break',
+  regen: 'regen',
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  dps: 'DPS',
+  heal: 'Heal',
+  sup: 'Support',
+  break: 'Break',
+  regen: 'Regen',
+  energy: 'Energy',
+};
+
+export function RoleChip({ role }: { role: string }) {
+  const key = slug(role);
+  const label = ROLE_LABEL[key] ?? role;
+  const icon = ROLE_GLYPH[key];
+
+  if (!icon) return <span className="tag">{label}</span>;
+
+  return (
+    <span className="role-chip" data-role={icon}>
+      <span className="role-chip__mark">
+        <Icon id={`role-${icon}`} />
+      </span>
+      {label}
+    </span>
+  );
+}

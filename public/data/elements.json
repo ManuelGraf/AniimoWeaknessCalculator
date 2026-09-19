@@ -1,17 +1,18 @@
 {
   "$comment": "Hand-verified from https://aniimoguide.com/elements. Verified by scripts/sync.mjs on every run.",
+  "$colours": "color/text are the dark-theme element palette and must stay identical to the [data-el] triplets in src/aniimo-dark.css section 2. The stylesheet is the source of truth; these are here for the few places CSS cannot reach (image tints, inline SVG).",
   "multipliers": { "strong": 1.6, "neutral": 1, "resisted": 0.625 },
   "dualRule": "multiply",
   "order": ["Fire","Water","Grass","Lightning","Earth","Wind","Dark","Ice","Light"],
   "elements": {
-    "Fire":      { "color": "#EF4444", "text": "#FF7A6B", "wikiKey": "attributes-fire",     "strongAgainst": ["Grass","Ice"],            "resistedBy": ["Fire","Water","Earth","Light"] },
-    "Water":     { "color": "#5BA4E8", "text": "#7DBEF5", "wikiKey": "attributes-water",    "strongAgainst": ["Fire","Earth"],           "resistedBy": ["Water","Grass","Ice","Light"] },
-    "Grass":     { "color": "#10B981", "text": "#34D9A0", "wikiKey": "attributes-grass",    "strongAgainst": ["Water","Earth"],          "resistedBy": ["Fire","Grass","Light"] },
-    "Lightning": { "color": "#E3C40A", "text": "#F5DB3D", "wikiKey": "attributes-electric", "strongAgainst": ["Water","Wind"],           "resistedBy": ["Lightning","Earth","Ice"] },
-    "Earth":     { "color": "#8A6D4E", "text": "#C79A62", "wikiKey": "attributes-rock",     "strongAgainst": ["Fire","Ice"],             "resistedBy": ["Water","Grass","Earth","Dark"] },
-    "Wind":      { "color": "#2563EB", "text": "#5B8DF6", "wikiKey": "attributes-wind",     "strongAgainst": ["Grass","Dark"],           "resistedBy": ["Lightning","Wind"] },
-    "Dark":      { "color": "#8B5CF6", "text": "#A98BFF", "wikiKey": "attributes-dark",     "strongAgainst": ["Grass","Lightning","Light"], "resistedBy": ["Water","Wind"] },
-    "Ice":       { "color": "#4DC6D6", "text": "#6FDCEA", "wikiKey": "attributes-ice",      "strongAgainst": ["Water","Lightning"],      "resistedBy": ["Fire","Earth","Ice"] },
-    "Light":     { "color": "#F5A623", "text": "#FFBE55", "wikiKey": "attributes-holy",     "strongAgainst": ["Wind","Dark"],            "resistedBy": ["Lightning","Light"] }
+    "Fire":      { "color": "#FF7A45", "text": "#FF7A45", "wikiKey": "attributes-fire",     "strongAgainst": ["Grass","Ice"],            "resistedBy": ["Fire","Water","Earth","Light"] },
+    "Water":     { "color": "#4F9BFF", "text": "#4F9BFF", "wikiKey": "attributes-water",    "strongAgainst": ["Fire","Earth"],           "resistedBy": ["Water","Grass","Ice","Light"] },
+    "Grass":     { "color": "#62D66A", "text": "#62D66A", "wikiKey": "attributes-grass",    "strongAgainst": ["Water","Earth"],          "resistedBy": ["Fire","Grass","Light"] },
+    "Lightning": { "color": "#FFC93C", "text": "#FFC93C", "wikiKey": "attributes-electric", "strongAgainst": ["Water","Wind"],           "resistedBy": ["Lightning","Earth","Ice"] },
+    "Earth":     { "color": "#D9A26B", "text": "#D9A26B", "wikiKey": "attributes-rock",     "strongAgainst": ["Fire","Ice"],             "resistedBy": ["Water","Grass","Earth","Dark"] },
+    "Wind":      { "color": "#7BE8C4", "text": "#7BE8C4", "wikiKey": "attributes-wind",     "strongAgainst": ["Grass","Dark"],           "resistedBy": ["Lightning","Wind"] },
+    "Dark":      { "color": "#B79CFF", "text": "#B79CFF", "wikiKey": "attributes-dark",     "strongAgainst": ["Grass","Lightning","Light"], "resistedBy": ["Water","Wind"] },
+    "Ice":       { "color": "#8FD8F0", "text": "#8FD8F0", "wikiKey": "attributes-ice",      "strongAgainst": ["Water","Lightning"],      "resistedBy": ["Fire","Earth","Ice"] },
+    "Light":     { "color": "#FFE9A0", "text": "#FFE9A0", "wikiKey": "attributes-holy",     "strongAgainst": ["Wind","Dark"],            "resistedBy": ["Lightning","Light"] }
   }
 }

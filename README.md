@@ -236,6 +236,9 @@ own depth, so the build works from a Pages project sub-path without naming the r
 
 ```
 src/
+  aniimo-dark.css     the design system as delivered - tokens, then components
+  aniimo-site.css     extensions to it for the parts the design did not cover
+  aniimo-icons.svg    element and role glyphs, inlined into every page
   lib/chart.ts        matchup maths (no React, no DOM)
   lib/data.ts         loading, search ranking
   lib/useHashRoute.ts URL state
@@ -250,14 +253,39 @@ scripts/
   prerender.mjs       writes the static pages, sitemap, robots and llms.txt
   lib/site.mjs        where the site lives (the only place a URL is written)
   lib/matchups.mjs    matchup maths in plain JS, mirrored from src/lib/chart.ts
-  lib/html.mjs        page shell: head tags, structured data, stylesheet
+  lib/html.mjs        page shell: head tags, structured data, chrome, icon sprite
   lib/pages.mjs       the body of each kind of page
 public/data/          the generated database
 ```
 
 Both scripts are plain Node with no dependencies and do not import anything from `src/`. That is
 why the matchup maths is restated in `lib/matchups.mjs` rather than imported, and why
-`scripts/lib/matchups.test.ts` exists to keep the two honest.
+`scripts/lib/matchups.test.ts` exists to keep the two honest. The one exception is
+`src/aniimo-icons.svg`, which `lib/html.mjs` reads as a file rather than imports.
+
+## Styling
+
+Plain CSS with custom properties, no framework and no build step of its own. Two files, loaded in
+this order:
+
+- `src/aniimo-dark.css` - the delivered design system, kept byte-for-byte as handed over so it can
+  be diffed against a redelivery. Tokens in section 1, components after.
+- `src/aniimo-site.css` - everything the design canvas did not cover: the prerendered article
+  pages, the combobox, the move list, the band groupings. No new colours or fonts.
+
+`src/main.tsx` imports both, Vite bundles them into one hashed stylesheet, and `prerender.mjs`
+lifts that `<link>` out of `dist/index.html` onto all 274 generated pages. So the static page and
+the app that mounts on top of it are painted by the same file and cannot drift apart.
+
+Two mechanisms carry all the colour, and neither writes a hex into markup:
+
+- an element is tinted by a `data-el="fire"` ancestor, which sets `--el-rgb`
+- a multiplier is coloured by `data-verdict`, set from the number server-side: `bad` above 1x,
+  `good` below, `flat` at exactly 1x. `verdict()` exists twice - `src/lib/chart.ts` for the app and
+  `scripts/lib/html.mjs` for the prerenderer - and both must agree.
+
+The element palette lives in `aniimo-dark.css` section 2. `public/data/elements.json` carries the
+same nine values for the few places CSS cannot reach; change one, change the other.
 
 ## Caveats
 
