@@ -198,6 +198,134 @@ describe('App', () => {
     expect(screen.getByText('Test Bolt')).toBeTruthy();
   });
 
+  /**
+   * The roster view is the app half of the /aniimo/ landing page: the same
+   * tiles, the same two matchup lines, with filters on top.
+   */
+  describe('the Aniimo roster', () => {
+    const tiles = () => document.querySelectorAll('a.tile');
+
+    test('the toggle opens it and every form gets a tile', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+      await ready();
+
+      await user.click(screen.getByRole('button', { name: 'Aniimo' }));
+      await waitFor(() => expect(window.location.hash).toBe('#/aniimo'));
+
+      const roster = JSON.parse(file('aniimo.json')) as Array<unknown>;
+      await waitFor(() => expect(tiles()).toHaveLength(roster.length));
+    });
+
+    test('a tile carries the number, name, element and role', async () => {
+      window.location.hash = '#/aniimo';
+      render(<App />);
+      await waitFor(() => expect(tiles().length).toBeGreaterThan(0));
+
+      const tile = document.querySelector('a[href$="aniimo/emberpup/"]')!;
+      expect(tile.textContent).toContain('No. 001');
+      expect(tile.textContent).toContain('Emberpup');
+      // The badges are glyphs, so what they mean is said in text beside them.
+      expect(tile.textContent).toContain('Fire type, DPS role.');
+      expect(tile.querySelector('.tile__els .el-plate')!.getAttribute('data-el')).toBe('fire');
+      expect(tile.querySelector('.tile__role')!.getAttribute('data-role')).toBe('dps');
+    });
+
+    test('the spread bar draws all five bands, empty ones included', async () => {
+      window.location.hash = '#/aniimo';
+      render(<App />);
+      await waitFor(() => expect(tiles().length).toBeGreaterThan(0));
+
+      const tile = document.querySelector('a[href$="aniimo/emberpup/"]')!;
+      const bands = [...tile.querySelectorAll('.tile__band')];
+      // Always five, whatever lands in them - otherwise the columns would not
+      // line up from one tile to the next.
+      expect(bands.map((b) => b.querySelector('.tile__bandMult')!.textContent)).toEqual([
+        '2.56×', '1.6×', '1×', '0.625×', '0.39×',
+      ]);
+
+      const column = (label: string) =>
+        [...bands.find((b) => b.querySelector('.tile__bandMult')!.textContent === label)!
+          .querySelectorAll('.tile__bandEls .el-plate')].map((p) => p.getAttribute('data-el'));
+
+      // Emberpup is single-element Fire: weak to Water and Earth, resists
+      // Fire, Grass and Ice, and nothing can reach 2.56x or 0.39x on a single.
+      expect(column('1.6×')).toEqual(['water', 'earth']);
+      expect(column('0.625×')).toEqual(['fire', 'grass', 'ice']);
+      expect(column('2.56×')).toEqual([]);
+      expect(column('0.39×')).toEqual([]);
+    });
+
+    test('the bar is a picture, so the same facts are given once in words', async () => {
+      window.location.hash = '#/aniimo';
+      render(<App />);
+      await waitFor(() => expect(tiles().length).toBeGreaterThan(0));
+
+      const tile = document.querySelector('a[href$="aniimo/glacy/"]')!;
+      expect(tile.querySelector('.tile__spread')!.getAttribute('aria-hidden')).toBe('true');
+      // Glacy is Water/Ice, so both ends are dual-element products.
+      expect(tile.textContent).toContain('Weak to Grass at 1.6×.');
+      expect(tile.textContent).toContain('Resists Water at 0.391×.');
+    });
+
+    test('filtering by two elements narrows to that exact pairing', async () => {
+      const user = userEvent.setup();
+      window.location.hash = '#/aniimo';
+      render(<App />);
+      await waitFor(() => expect(tiles().length).toBeGreaterThan(0));
+
+      const picker = screen.getByRole('group', { name: /filter by element/i });
+      await user.click(within(picker).getByRole('button', { name: 'Water' }));
+      await user.click(within(picker).getByRole('button', { name: 'Ice' }));
+
+      const roster = JSON.parse(file('aniimo.json')) as Array<{ elements: string[] }>;
+      const expected = roster.filter(
+        (a) => a.elements.includes('Water') && a.elements.includes('Ice'),
+      ).length;
+
+      expect(expected).toBeGreaterThan(0);
+      await waitFor(() => expect(tiles()).toHaveLength(expected));
+      expect(document.querySelector('a[href$="aniimo/glacy/"]')).toBeTruthy();
+    });
+
+    test('the name filter and the clear button', async () => {
+      const user = userEvent.setup();
+      window.location.hash = '#/aniimo';
+      render(<App />);
+      await waitFor(() => expect(tiles().length).toBeGreaterThan(0));
+      const all = tiles().length;
+
+      await user.type(screen.getByRole('searchbox', { name: /filter aniimo/i }), 'glacy');
+      await waitFor(() => expect(tiles().length).toBeLessThan(all));
+      expect(document.querySelector('a[href$="aniimo/glacy/"]')).toBeTruthy();
+
+      await user.click(screen.getByRole('button', { name: /clear filters/i }));
+      await waitFor(() => expect(tiles()).toHaveLength(all));
+    });
+
+    test('a plain click opens the form in the calculator rather than the page', async () => {
+      const user = userEvent.setup();
+      window.location.hash = '#/aniimo';
+      render(<App />);
+      await waitFor(() => expect(tiles().length).toBeGreaterThan(0));
+
+      await user.click(document.querySelector('a[href$="aniimo/glacy/"]')!);
+
+      await waitFor(() => expect(window.location.hash).toBe('#/aniimo/glacy'));
+      expect(await screen.findByText('Taking damage')).toBeTruthy();
+      expect(await screen.findByText('Dealing damage')).toBeTruthy();
+    });
+
+    test('tiles link to the form’s own prerendered page, resolved from the site root', async () => {
+      window.__SITE_ROOT__ = '../';
+      window.location.hash = '#/aniimo';
+      render(<App />);
+      await waitFor(() => expect(tiles().length).toBeGreaterThan(0));
+
+      expect(document.querySelector('a.tile')!.getAttribute('href')).toMatch(/^\.\.\/aniimo\/.+\/$/);
+    });
+  });
+
   test('the chart view renders all nine rows', async () => {
     window.location.hash = '#/chart';
     render(<App />);
@@ -233,6 +361,16 @@ describe('App', () => {
       await ready();
 
       expect(await screen.findByRole('heading', { name: 'Glacy' })).toBeTruthy();
+      expect(window.location.hash).toBe('');
+    });
+
+    test('the roster page opens on the grid, not on an empty calculator', async () => {
+      prerender({ view: 'roster' }, '../');
+      render(<App />);
+      await waitFor(() => expect(document.querySelectorAll('a.tile').length).toBeGreaterThan(0));
+
+      // The static page brings its own headline, so the app does not add one.
+      expect(screen.queryByText(/All \d+ Aniimo and their weaknesses/)).toBeNull();
       expect(window.location.hash).toBe('');
     });
 

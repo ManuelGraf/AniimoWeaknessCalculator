@@ -31,6 +31,18 @@ async function fetchJson<T>(file: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/**
+ * "Water, Earth and Light" - for the sentences that have to read as prose.
+ * Mirrors list() in scripts/lib/html.mjs, which writes the same sentences onto
+ * the static pages.
+ */
+export const list = (items: readonly string[], conjunction = 'and'): string => {
+  const a = items.filter(Boolean);
+  if (!a.length) return 'nothing';
+  if (a.length === 1) return a[0]!;
+  return `${a.slice(0, -1).join(', ')} ${conjunction} ${a[a.length - 1]}`;
+};
+
 export const displayName = (a: Aniimo): string =>
   a.isBasic ? a.name : `${a.name} (${a.morphology.replace(/ Form$/, '')})`;
 

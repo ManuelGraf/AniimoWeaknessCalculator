@@ -27,6 +27,29 @@ export interface Coverage {
   best: BestHit;
 }
 
+/** One end of a defender's spread: the multiplier, and everything that reaches it. */
+export interface Extreme {
+  multiplier: number;
+  elements: Element[];
+  /**
+   * How a tile labels the row. Read from the number, not from the elements:
+   * a pairing where nothing is super effective is "hit hardest by", not
+   * "weak to", and one that resists nothing takes least from something anyway.
+   */
+  label: string;
+}
+
+export interface Extremes {
+  most: Extreme;
+  least: Extreme;
+}
+
+/** One of the five bands with whatever landed in it, which may be nothing. */
+export interface BandGroup {
+  band: Band;
+  entries: Matchup[];
+}
+
 export function createChart(data: ChartData) {
   const { order } = data;
   const defs = data.elements;
@@ -53,6 +76,49 @@ export function createChart(data: ChartData) {
     return order
       .map((element) => ({ element, multiplier: against(element, defenders) }))
       .sort((a, b) => b.multiplier - a.multiplier || order.indexOf(a.element) - order.indexOf(b.element));
+  }
+
+  /**
+   * The same spread bucketed into the five bands, hardest first, with every
+   * band present whether or not anything lands in it.
+   *
+   * The empty ones matter: an Aniimo tile draws one column per band and they
+   * only line up across the grid if all five are always there. The defence
+   * panel drops them. Mirrored in scripts/lib/matchups.mjs.
+   */
+  function spreadByBand(defenders: readonly Element[]): BandGroup[] {
+    const spread = defenceSpread(defenders);
+    return BANDS.map((b) => ({
+      band: b,
+      entries: spread.filter((s) => band(s.multiplier).key === b.key),
+    }));
+  }
+
+  /**
+   * The two ends of that spread - what deals the most damage to this defender
+   * and what deals the least - which is the whole of what an Aniimo tile shows
+   * without being opened. Mirrored in scripts/lib/matchups.mjs.
+   *
+   * `least` comes back empty when both ends are the same multiplier, so a
+   * defender with a flat spread is not listed as resisting the very elements
+   * named beside it as its worst.
+   */
+  function extremes(defenders: readonly Element[]): Extremes {
+    const spread = defenceSpread(defenders);
+    const at = (m: number) => spread.filter((s) => round(s.multiplier) === round(m)).map((s) => s.element);
+
+    const top = spread[0]!.multiplier;
+    const bottom = spread[spread.length - 1]!.multiplier;
+    const flat = round(top) === round(bottom);
+
+    return {
+      most: { multiplier: top, elements: at(top), label: round(top) > 1 ? 'Weak to' : 'Hit hardest by' },
+      least: {
+        multiplier: bottom,
+        elements: flat ? [] : at(bottom),
+        label: round(bottom) < 1 ? 'Resists' : 'Takes least from',
+      },
+    };
   }
 
   /**
@@ -86,7 +152,18 @@ export function createChart(data: ChartData) {
     }));
   }
 
-  return { order, defs, multipliers: data.multipliers, pair, against, defenceSpread, offenceSpread, matrix };
+  return {
+    order,
+    defs,
+    multipliers: data.multipliers,
+    pair,
+    against,
+    defenceSpread,
+    spreadByBand,
+    extremes,
+    offenceSpread,
+    matrix,
+  };
 }
 
 export type Chart = ReturnType<typeof createChart>;
@@ -100,17 +177,24 @@ export type BandKey = 'x256' | 'x16' | 'x1' | 'x0625' | 'x039';
 export interface Band {
   min: number;
   key: BandKey;
+  /**
+   * The multiplier this band *is*, as opposed to `min`, which is only the
+   * floor used to bucket a number into it. It exists so an empty band still
+   * has something to colour itself from - see the tile's spread bar, where all
+   * five columns are drawn whether or not anything landed in them.
+   */
+  mult: number;
   label: string;
   /** Short read of what the number means, used as the group heading. */
   blurb: string;
 }
 
 export const BANDS: Band[] = [
-  { min: 2.5, key: 'x256', label: '2.56×', blurb: 'Hits both halves' },
-  { min: 1.5, key: 'x16', label: '1.6×', blurb: 'Super effective' },
-  { min: 0.99, key: 'x1', label: '1×', blurb: 'Neutral' },
-  { min: 0.6, key: 'x0625', label: '0.625×', blurb: 'Resisted' },
-  { min: 0, key: 'x039', label: '0.39×', blurb: 'Resisted twice' },
+  { min: 2.5, key: 'x256', mult: 2.56, label: '2.56×', blurb: 'Hits both halves' },
+  { min: 1.5, key: 'x16', mult: 1.6, label: '1.6×', blurb: 'Super effective' },
+  { min: 0.99, key: 'x1', mult: 1, label: '1×', blurb: 'Neutral' },
+  { min: 0.6, key: 'x0625', mult: 0.625, label: '0.625×', blurb: 'Resisted' },
+  { min: 0, key: 'x039', mult: 0.390625, label: '0.39×', blurb: 'Resisted twice' },
 ];
 
 export function band(multiplier: number): Band {

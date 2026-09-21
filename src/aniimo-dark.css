@@ -562,7 +562,7 @@ a:hover { color: #A9F3E1; text-decoration: underline; }
 
   .nav { display: none; }             /* replace with a disclosure menu */
   .brand__sub { display: none; }
-  .site-footer > .page { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .site-footer > .page { flex-direction: column; align-items: center; gap: 20px; text-align:center}
 
   /* glance table stacks */
   .glance, .glance tbody, .glance tr, .glance td { display: block; width: 100%; }

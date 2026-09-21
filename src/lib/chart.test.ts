@@ -65,6 +65,55 @@ describe('dual-element defenders', () => {
   });
 });
 
+/**
+ * The two lines an Aniimo tile shows without being opened. Everything in the
+ * grid and on the /aniimo/ landing page is read off this, so a wrong label
+ * here is wrong on 226 tiles and 226 table rows at once.
+ */
+describe('extremes', () => {
+  test('a single element reports both ends of its own column', () => {
+    const { most, least } = chart.extremes(['Fire']);
+    expect(most).toEqual({ multiplier: 1.6, elements: ['Water', 'Earth'], label: 'Weak to' });
+    expect(least.elements).toEqual(['Fire', 'Grass', 'Ice']);
+    expect(least.label).toBe('Resists');
+  });
+
+  test('a dual reports the multiplied ends, not the single-element ones', () => {
+    // Glacy is Water/Ice: Grass is resisted by Water but strong into Ice for a
+    // net 1.6x, and Water is resisted by both halves down to 0.39x.
+    const { most, least } = chart.extremes(['Water', 'Ice']);
+    expect(most.elements).toEqual(['Grass']);
+    expect(round(most.multiplier)).toBe(1.6);
+    expect(least.elements).toEqual(['Water']);
+    expect(round(least.multiplier)).toBe(0.3906);
+  });
+
+  test('every element in the roster-wide top group shares its multiplier', () => {
+    for (const a of chart.order) {
+      for (const b of chart.order) {
+        const { most, least } = chart.extremes([a, b]);
+        for (const el of most.elements) expect(round(chart.against(el, [a, b]))).toBe(round(most.multiplier));
+        for (const el of least.elements) expect(round(chart.against(el, [a, b]))).toBe(round(least.multiplier));
+      }
+    }
+  });
+
+  test('the labels are read from the number, not from the elements', () => {
+    // No pairing in the published chart is unhittable or unresisting, so the
+    // fallbacks are exercised against a chart where nothing is either.
+    const elements = { ...data.elements };
+    for (const el of chart.order) elements[el] = { ...elements[el], strongAgainst: [], resistedBy: [] };
+    const flat = createChart({ ...data, elements });
+
+    const { most, least } = flat.extremes(['Fire']);
+    expect(most.label).toBe('Hit hardest by');
+    expect(most.elements).toHaveLength(9);
+    // Both ends are the same multiplier, so the bottom row is dropped rather
+    // than repeating all nine elements as what it resists.
+    expect(least.elements).toEqual([]);
+  });
+});
+
 describe('defenceSpread', () => {
   test('covers all nine attackers, hardest hit first', () => {
     const spread = chart.defenceSpread(['Water', 'Ice']);

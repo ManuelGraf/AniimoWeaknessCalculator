@@ -13,8 +13,8 @@
  * turns those into the tint, the border and the glow. See section 2 and 10 of
  * src/aniimo-dark.css.
  */
-import { band, formatMultiplier, moveElements, displayName, paths } from './matchups.mjs';
-import { esc, list, elChip, elPlate, roleChip, verdictAttr, crumbs, hero, oneLine } from './html.mjs';
+import { BANDS, band, formatMultiplier, moveElements, displayName, paths } from './matchups.mjs';
+import { esc, list, elChip, elPlate, roleChip, roleBadge, roleLabel, verdictAttr, crumbs, hero, oneLine } from './html.mjs';
 import { abs, SITE_NAME } from './site.mjs';
 
 const pct = (n) => formatMultiplier(n);
@@ -137,6 +137,71 @@ const rosterList = (up, aniimo) =>
     .map((a) => `<li><a href="${up}${paths.aniimo(a)}">${esc(displayName(a))}</a></li>`)
     .join('')}</ul>`;
 
+/**
+ * One Aniimo tile: art with its element and role badges pinned to it, the
+ * number and name, and a five-column bar - one column per damage band - whose
+ * icons say which elements land where. Nothing is hidden behind a hover.
+ *
+ * This is the static twin of <Tile> in src/components/AniimoGrid.tsx, which
+ * replaces it once the app boots. Same classes, same nesting, same order - the
+ * `.tile` block in src/aniimo-site.css paints both, and the two have to be
+ * edited together.
+ *
+ * The bar is a picture of the numbers, so it is aria-hidden and the same facts
+ * are given once in a sentence beside it. The table further down the roster
+ * page states them again in plain view.
+ */
+export function aniimoTile(chart, up, a) {
+  const src = a.head ?? a.image;
+
+  const column = ({ band: b, entries }) => `<span class="tile__band"${verdictAttr(b.mult)}>
+<span class="tile__bandMult">${esc(b.label)}</span>
+<span class="tile__bandEls">${
+    entries.length
+      ? entries.map((e) => elPlate(e.element, 'xxs')).join('')
+      : '<span class="tile__bandNone">·</span>'
+  }</span></span>`;
+
+  return `<a class="tile" data-el="${esc(String(a.elements[0] ?? '').toLowerCase())}" href="${up}${paths.aniimo(a)}">
+<span class="tile__figure">
+${
+    src
+      ? `<img class="tile__art" src="${esc(src)}" alt="" width="64" height="64" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+      : `<span class="tile__art">${esc(a.name.slice(0, 2))}</span>`
+  }
+<span class="tile__els">${a.elements.map((el) => elPlate(el, 'xs')).join('')}</span>
+${a.roles.map(roleBadge).join('')}
+<span class="sr-only">${esc(a.elements.join('/'))} type${
+    a.roles.length ? `, ${esc(a.roles.map(roleLabel).join(' and '))} role` : ''
+  }.</span>
+</span>
+${a.number ? `<span class="tile__no">No. ${esc(a.number)}</span>` : ''}
+<span class="tile__name">${esc(displayName(a))}</span>
+<span class="sr-only">${esc(spokenSpread(chart, a.elements))}</span>
+<span class="tile__spread" aria-hidden="true">${chart.spreadByBand(a.elements).map(column).join('')}</span>
+</a>`;
+}
+
+/**
+ * What the five columns on every tile mean, said once above the grid rather
+ * than 226 times inside it. Mirrored by <TileLegend> in
+ * src/components/AniimoGrid.tsx.
+ */
+const tileLegend = () => `<p class="tile-legend">
+<span>Each tile's bar reads left to right, most damage taken to least:</span>
+${BANDS.map((b) => `<span${verdictAttr(b.mult)}><b>${esc(b.label)}</b> ${esc(b.blurb.toLowerCase())}</span>`).join('')}
+</p>`;
+
+/**
+ * What the spread bar says, in a sentence. Mirrored by spokenSpread() in
+ * src/components/AniimoGrid.tsx.
+ */
+function spokenSpread(chart, elements) {
+  const { most, least } = chart.extremes(elements);
+  const one = (e) => (e.elements.length ? `${e.label} ${list(e.elements)} at ${formatMultiplier(e.multiplier)}.` : '');
+  return `${one(most)} ${one(least)}`.trim();
+}
+
 /** The FAQ card. Carries the id the header's FAQ link points at. */
 const faqSection = (q) => `<section class="card card--flow" id="faq">${q.html}</section>`;
 
@@ -232,7 +297,9 @@ ${matrixTable(chart)}
     .map(([a, b]) => `<li><a href="${up}${paths.dual(chart.order, a, b)}">${esc(a)} / ${esc(b)}</a></li>`)
     .join('')}</ul>
 <h3>Or a specific Aniimo</h3>
-<p class="muted"><a href="${up}aniimo/">Browse all ${meta.counts.forms} Aniimo forms</a>, including regional and Prismana variants.</p>
+<p><a class="btn btn--primary" href="${up}aniimo/">All ${meta.counts.forms} Aniimo and their weaknesses</a></p>
+<p class="muted">Every form as a tile, including regional and Prismana variants, with what deals it the most
+damage and what it resists.</p>
 </section>
 
 ${faqSection(q)}
@@ -699,13 +766,113 @@ export function rosterPage({ chart, roster, meta, up }) {
     .filter((g) => g.list.length);
 
   const alphabetical = [...roster].sort((a, b) => displayName(a).localeCompare(displayName(b)));
+  const byNumber = [...roster].sort(
+    (a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')) || a.name.localeCompare(b.name),
+  );
+
+  const duals = roster.filter((a) => a.elements.length === 2);
+
+  /* The two aggregates worth stating outright. An answer engine asked "what is
+     the best attacking element in Aniimo" has nothing to quote unless the
+     count is written down somewhere, and this is the page that can count. */
+  const coverage = chart.order
+    .map((attacker) => ({
+      attacker,
+      hits: roster.filter((a) => chart.against(attacker, a.elements) > 1).length,
+      quad: roster.filter((a) => band(chart.against(attacker, a.elements)).key === 'x256').length,
+    }))
+    .sort((x, y) => y.hits - x.hits || chart.order.indexOf(x.attacker) - chart.order.indexOf(y.attacker));
+
+  const bestAttacker = coverage[0];
+  const commonest = [...byElement].sort((x, y) => y.list.length - x.list.length)[0];
+
+  const coverageTable = `<table class="data-table">
+<caption>How many of the ${roster.length} forms each attacking element is super effective against, counting both halves of a dual.</caption>
+<thead><tr><th scope="col">Attacking element</th><th scope="col" class="num">Forms hit</th><th scope="col" class="num">Of those, 2.56x</th></tr></thead>
+<tbody>${coverage
+    .map(
+      (c) => `<tr><th scope="row">${elChip(c.attacker, `${up}${paths.element(c.attacker)}`)}</th>
+<td class="num">${c.hits}</td>
+<td class="num">${c.quad || '—'}</td></tr>`,
+    )
+    .join('\n')}</tbody></table>`;
+
+  /* The extraction target. Every form, its typing, what hits it hardest and
+     what it shrugs off, in one plain table that needs no icon-reading and no
+     JavaScript. This is the part of the page an AI answer is built from. */
+  const weaknessTable = `<div class="table-scroll"><table class="data-table">
+<caption>Every Aniimo form with the elements that deal it the most and the least damage.</caption>
+<thead><tr><th scope="col">Aniimo</th><th scope="col">Element</th><th scope="col">Takes most damage from</th><th scope="col">Resists</th></tr></thead>
+<tbody>${alphabetical
+    .map((a) => {
+      const { most, least } = chart.extremes(a.elements);
+      const cell = (e) =>
+        e.elements.length
+          ? `<span class="cell-mult"${verdictAttr(e.multiplier)}>${esc(formatMultiplier(e.multiplier))}</span> ${esc(list(e.elements))}`
+          : '<span class="muted">—</span>';
+      return `<tr><th scope="row"><a href="${up}${paths.aniimo(a)}">${esc(displayName(a))}</a>${
+        a.number ? ` <span class="tile__no">No. ${esc(a.number)}</span>` : ''
+      }</th>
+<td>${a.elements.map((el) => elChip(el, `${up}${paths.element(el)}`)).join('')}</td>
+<td>${cell(most)}</td>
+<td>${cell(least)}</td></tr>`;
+    })
+    .join('\n')}</tbody></table></div>`;
+
+  const q = faq([
+    {
+      q: 'How many Aniimo are there?',
+      a: `${meta.counts.forms} forms are currently documented, counting regional and Prismana variants as separate forms. ${duals.length} of them carry two elements.`,
+    },
+    {
+      q: 'What is the best attacking element in Aniimo?',
+      a: `${bestAttacker.attacker} is super effective against the most forms — ${bestAttacker.hits} of ${roster.length}${bestAttacker.quad ? `, ${bestAttacker.quad} of them for a full 2.56x` : ''}. Coverage is only half the story though: an Aniimo attacks with the elements its moves have, not with its own typing, so what it can actually reach depends on its move list.`,
+    },
+    {
+      q: 'Which Aniimo take 2.56x damage?',
+      a: `Only dual-element forms can. An attack that is super effective against both halves is multiplied twice, 1.6 x 1.6 = 2.56x, and ${duals.length} of the ${roster.length} forms are dual-element. A single-element Aniimo never takes more than 1.6x.`,
+    },
+    {
+      q: 'Which element do the most Aniimo have?',
+      a: `${commonest.el}, with ${commonest.list.length} forms. Every element has at least one.`,
+    },
+    {
+      q: 'Can an Aniimo be immune to an element?',
+      a: `No. Aniimo has no immunities; the lowest any matchup goes is 0.39x, which needs both halves of a dual-element form to resist the same attack.`,
+    },
+  ]);
 
   const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: 'All Aniimo' }])}
 <h1>All ${meta.counts.forms} Aniimo and their weaknesses</h1>
-<p class="lede">Every Aniimo form in the game, including regional and Prismana variants. Each page lists what
-that form takes extra damage from, what it resists, and what its own moves can hit.</p>`)}
+<p class="lede">Every Aniimo form in the game, including regional and Prismana variants, with what deals it
+the most damage and what it resists. Open one for its full matchup table and what its own moves can hit.</p>
+
+<div class="answer">
+<p><strong>There are ${meta.counts.forms} Aniimo forms across nine elements</strong> — ${esc(list(chart.order))} — of which
+${duals.length} carry two elements and ${roster.length - duals.length} carry one.</p>
+<p><strong>${esc(bestAttacker.attacker)} attacks are super effective against more forms than any other element</strong>
+(${bestAttacker.hits} of ${roster.length}${bestAttacker.quad ? `, ${bestAttacker.quad} of them for 2.56×` : ''}).</p>
+<p>Only a dual-element form can take 2.56×, and nothing in the game is immune: the floor is 0.39×.</p>
+</div>`)}
 
 <main class="page page--narrow section">
+<section class="card card--flow" data-app-owns>
+<h2>Every Aniimo at a glance</h2>
+${tileLegend()}
+<ul class="tile-grid">${byNumber.map((a) => `<li>${aniimoTile(chart, up, a)}</li>`).join('\n')}</ul>
+</section>
+
+<section class="card card--flow">
+<h2>Weakness of every Aniimo</h2>
+${weaknessTable}
+</section>
+
+<section class="card card--flow">
+<h2>Which element hits the most Aniimo</h2>
+<p class="muted">Counted over the whole roster, reading both halves of a dual-element form.</p>
+${coverageTable}
+</section>
+
 <section class="card card--flow">
 <h2>By element</h2>
 ${byElement
@@ -716,10 +883,7 @@ ${rosterList(up, g.list)}`,
     .join('\n')}
 </section>
 
-<section class="card card--flow">
-<h2>A to Z</h2>
-${rosterList(up, alphabetical)}
-</section>
+${faqSection(q)}
 </main>`;
 
   const jsonLd = [
@@ -739,6 +903,7 @@ ${rosterList(up, alphabetical)}
         url: abs(paths.aniimo(a)),
       })),
     },
+    q.jsonLd,
   ];
 
   return { body, jsonLd };

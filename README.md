@@ -41,12 +41,22 @@ move. Hexxin into a Water/Ice defender:
 The super-effective option comes last. Raw power outweighs the matchup here, which a coverage grid
 alone will not tell you.
 
+**Aniimo — the whole roster as tiles**
+Every form as a tile: official art with its element and role pinned to it as badges, the dex number
+and name, and underneath a five-column bar — one column per damage band, 2.56× down to 0.39× — whose
+icons say which elements land in each. Nothing is behind a hover, so a form's whole defensive spread
+is readable while scanning, and the columns line up down the grid because all five are always drawn
+whether or not anything falls in them.
+
+Filter by name, by role, or by up to two elements at once — two elements means *both*, which is how
+you find an exact dual pairing. Clicking a tile opens it in the calculator.
+
 **Full chart** — the raw 9×9 grid, rows attack and columns defend.
 
-State lives in the URL hash (`#/aniimo/glacy`, `#/defense/water+ice`, `#/chart`), so any result can be
-linked. A hash is used rather than paths because GitHub Pages serves no SPA fallback. The same
-lookups also exist as real pages (`/aniimo/glacy/`, `/element/water-ice/`) written at build time —
-see [Static pages](#static-pages).
+State lives in the URL hash (`#/aniimo`, `#/aniimo/glacy`, `#/defense/water+ice`, `#/chart`), so any
+result can be linked. A hash is used rather than paths because GitHub Pages serves no SPA fallback.
+The same lookups also exist as real pages (`/aniimo/`, `/aniimo/glacy/`, `/element/water-ice/`)
+written at build time — see [Static pages](#static-pages).
 
 ## The element chart
 
@@ -148,7 +158,7 @@ aniimoguide. Every entry has both, and the test suite asserts they are still ima
 npm test
 ```
 
-Four suites, no fixtures — they run against the real committed data:
+Five suites, no fixtures — they run against the real committed data:
 
 - `src/lib/chart.test.ts` — matchup maths, including a 729-case check that dual-element order never
   changes the result, and aniimoguide's two published examples.
@@ -158,6 +168,10 @@ Four suites, no fixtures — they run against the real committed data:
   and the handover from a prerendered page.
 - `scripts/lib/matchups.test.ts` — the prerenderer restates the matchup maths in plain JS; this
   checks it against `src/lib/chart.ts` for every attacker against all 45 defender combinations.
+- `scripts/lib/tile.test.tsx` — the Aniimo tile is written twice, as a component and as a template.
+  This renders the same form through both and compares the tag structure and every class and `data-`
+  hook the stylesheet reads. Both cross-boundary suites live under `scripts/` because they reach into
+  the plain-JS half of the build, which `tsconfig.json` deliberately leaves out.
 
 ## Static pages
 
@@ -172,10 +186,17 @@ every lookup the tool supports:
 /chart/                    the full grid, plus every matchup written out in prose
 /element/fire/             ×9   weak to / resists / strong against, and every Fire Aniimo
 /element/fire-earth/       ×36  dual pairings (the 9 no Aniimo has are noindex)
-/aniimo/                   the whole roster, by element and A–Z
+/aniimo/                   every form as a tile, and every form's weakness in one table
 /aniimo/glacy/             ×226 matchup table, move coverage, stats, habitats
 404.html, robots.txt, sitemap.xml, llms.txt
 ```
+
+`/aniimo/` is the landing page for *"what is every Aniimo weak to"*. It carries the same tile grid
+the app shows, written statically, then a plain table of all 226 forms with their elements, what
+deals each the most damage and what it resists, and a count of how many forms each attacking element
+is super effective against. The tiles say it in icons, so each one also states its spread in a
+sentence for a screen reader, and the table states it again in plain view — an icon grid is not
+something a crawler can read. The same per-form list is appended to `llms.txt`, one line each.
 
 Each page leads with the answer as a plain sentence — *"Fire is weak to Water and Earth"* — before
 any table, because that sentence is what gets quoted. All of it is generated from
@@ -242,7 +263,7 @@ src/
   lib/chart.ts        matchup maths (no React, no DOM)
   lib/data.ts         loading, search ranking
   lib/useHashRoute.ts URL state
-  components/         combobox, defence, offence, chart
+  components/         combobox, roster grid, defence, offence, chart
 scripts/
   sync.mjs            orchestrates a refresh, validates, writes
   lib/wiki.mjs        official wiki  (Nuxt payloads)
@@ -253,6 +274,7 @@ scripts/
   prerender.mjs       writes the static pages, sitemap, robots and llms.txt
   lib/site.mjs        where the site lives (the only place a URL is written)
   lib/matchups.mjs    matchup maths in plain JS, mirrored from src/lib/chart.ts
+  lib/tile.test.tsx   holds the two Aniimo tile renderers to the same markup
   lib/html.mjs        page shell: head tags, structured data, chrome, icon sprite
   lib/pages.mjs       the body of each kind of page
 public/data/          the generated database
@@ -286,6 +308,17 @@ Two mechanisms carry all the colour, and neither writes a hex into markup:
 
 The element palette lives in `aniimo-dark.css` section 2. `public/data/elements.json` carries the
 same nine values for the few places CSS cannot reach; change one, change the other.
+
+The Aniimo tile is the one piece of markup written twice — `<Tile>` in
+[`src/components/AniimoGrid.tsx`](src/components/AniimoGrid.tsx) and `aniimoTile()` in
+[`scripts/lib/pages.mjs`](scripts/lib/pages.mjs) — because the app's version replaces the static one
+in place on `/aniimo/`. Same classes, same nesting, same order, one `.tile` block styling both. The
+matchup maths behind it is not duplicated by hand: `spreadByBand()` and `extremes()` are mirrored
+like the rest, and [`scripts/lib/matchups.test.ts`](scripts/lib/matchups.test.ts) compares their
+output — `BANDS` included, since a tile prints a band's `label` as a column heading from whichever
+side rendered it. The markup itself is held together by
+[`scripts/lib/tile.test.tsx`](scripts/lib/tile.test.tsx), which renders both and diffs the
+structure.
 
 ## Caveats
 

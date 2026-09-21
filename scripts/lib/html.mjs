@@ -131,6 +131,20 @@ export const roleChip = (role) => {
 <span class="role-chip__mark">${glyph(`role-${icon}`)}</span>${label}</span>`;
 };
 
+/** How a role is written for a reader. Mirrors roleLabel() in src/components/ElementBadge.tsx. */
+export const roleLabel = (role) => ROLE_LABEL[slug(role)] ?? role;
+
+/**
+ * The glyph on its own, sized to sit on an Aniimo's artwork. The twin of
+ * <RoleBadge> in src/components/AniimoGrid.tsx.
+ */
+export const roleBadge = (role) => {
+  const icon = ROLE_GLYPH[slug(role)];
+  const label = esc(roleLabel(role));
+  if (!icon) return `<span class="tile__role tile__role--text">${label}</span>`;
+  return `<span class="tile__role" data-role="${icon}" title="${label}">${glyph(`role-${icon}`)}</span>`;
+};
+
 /* ------------------------------------------------------------------- shell */
 
 /**

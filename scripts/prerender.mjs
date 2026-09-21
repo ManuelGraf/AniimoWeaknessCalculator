@@ -155,11 +155,15 @@ async function main() {
   await emit({
     rel: paths.roster,
     title: `All ${meta.counts.forms} Aniimo and Their Weaknesses`,
-    description: `Every Aniimo form, including regional and Prismana variants, each with its elements, weaknesses, resistances and move coverage.`,
+    description:
+      `Every Aniimo form with its elements, roles and weaknesses in one table — ` +
+      `what deals each of the ${meta.counts.forms} forms the most damage, and what it resists.`,
     page: rosterPage({ chart, roster, meta, up: upTo(paths.roster) }),
-    route: null,
+    // The app's roster view replaces the tile grid here, so the page opens
+    // straight into it rather than into an empty calculator.
+    route: { view: 'roster' },
     nav: 'aniimo',
-    priority: '0.8',
+    priority: '0.9',
     changefreq: 'weekly',
   });
 
@@ -400,6 +404,19 @@ function llms({ chart, roster, meta }) {
     })
     .join('\n');
 
+  // Every form on one line. This is the answer to "what is <name> weak to"
+  // for all 226 of them, which is the single most asked thing about the game
+  // and the reason a model would read this file at all.
+  const forms = [...roster]
+    .sort((a, b) => displayName(a).localeCompare(displayName(b)))
+    .map((a) => {
+      const { most, least } = chart.extremes(a.elements);
+      const mult = (m) => formatMultiplier(m).replace('×', 'x');
+      const tail = least.elements.length ? `; resists ${list(least.elements)} (${mult(least.multiplier)})` : '';
+      return `- **${displayName(a)}** (${a.elements.join('/')}) — takes ${mult(most.multiplier)} from ${list(most.elements)}${tail}.`;
+    })
+    .join('\n');
+
   const duals = chart
     .pairs()
     .filter(([a, b]) => roster.some((r) => r.elements.length === 2 && r.elements.includes(a) && r.elements.includes(b)))
@@ -449,6 +466,13 @@ ${chart.order.map((el) => `- [${el} type effectiveness](${abs(paths.element(el))
 ## Dual-element pairings that exist in game
 
 ${duals}
+
+## Every Aniimo and what it is weak to
+
+All ${meta.counts.forms} forms, including regional and Prismana variants. Each has its own page at
+${abs('aniimo/')}{id}/ and the same list is tabulated at ${abs(paths.roster)}.
+
+${forms}
 
 ## About
 

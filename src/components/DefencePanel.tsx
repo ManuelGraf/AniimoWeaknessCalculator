@@ -1,4 +1,4 @@
-import { BANDS, band, formatMultiplier, verdict, type Chart } from '../lib/chart';
+import { formatMultiplier, verdict, type Chart } from '../lib/chart';
 import type { Element } from '../types';
 import { ElChip } from './ElementBadge';
 
@@ -10,12 +10,9 @@ import { ElChip } from './ElementBadge';
  * group keeps its own label and blurb, which is where the difference lives.
  */
 export function DefencePanel({ chart, defenders }: { chart: Chart; defenders: Element[] }) {
-  const spread = chart.defenceSpread(defenders);
-
-  const groups = BANDS.map((b) => ({
-    band: b,
-    entries: spread.filter((s) => band(s.multiplier).key === b.key),
-  })).filter((g) => g.entries.length > 0);
+  // Shared with the Aniimo tile's spread bar, which keeps the empty bands to
+  // hold its columns in line; a panel with nothing in a band just drops it.
+  const groups = chart.spreadByBand(defenders).filter((g) => g.entries.length > 0);
 
   return (
     <div className="bands">

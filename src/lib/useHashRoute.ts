@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
  * SPA fallback, so a path-based router would 404 on refresh; a hash never
  * reaches the server.
  *
+ *   #/aniimo              the whole roster as browsable tiles
  *   #/aniimo/glacy        a specific Aniimo (and its form)
  *   #/defense/water+ice   a bare element pairing
  *   #/chart               the full 9x9 chart
@@ -27,6 +28,7 @@ export type Route =
   | { view: 'calc'; kind: 'aniimo'; id: string }
   | { view: 'calc'; kind: 'elements'; elements: string[] }
   | { view: 'calc'; kind: 'empty' }
+  | { view: 'roster' }
   | { view: 'chart' };
 
 export function parseHash(hash: string): Route {
@@ -35,6 +37,8 @@ export function parseHash(hash: string): Route {
 
   const [head, rest] = [path.split('/')[0] ?? '', path.split('/')[1] ?? ''];
   if (head === 'aniimo' && rest) return { view: 'calc', kind: 'aniimo', id: rest };
+  // Bare `#/aniimo` is the roster, the same thing /aniimo/ serves statically.
+  if (head === 'aniimo') return { view: 'roster' };
   if (head === 'defense' && rest) {
     const elements = rest.split('+').filter(Boolean).slice(0, 2);
     if (elements.length) return { view: 'calc', kind: 'elements', elements };
@@ -44,6 +48,7 @@ export function parseHash(hash: string): Route {
 
 export function formatHash(route: Route): string {
   if (route.view === 'chart') return '#/chart';
+  if (route.view === 'roster') return '#/aniimo';
   if (route.kind === 'aniimo') return `#/aniimo/${route.id}`;
   if (route.kind === 'elements') return `#/defense/${route.elements.join('+').toLowerCase()}`;
   return '#/';

@@ -44,6 +44,21 @@ describe('matchups.mjs mirrors src/lib/chart.ts', () => {
     }
   });
 
+  test('the five band buckets an Aniimo tile draws are identical', () => {
+    for (const defenders of defenderSets) {
+      expect(js.spreadByBand(defenders)).toEqual(ts.spreadByBand(defenders));
+      // All five are always present, empty ones included, or the tile columns
+      // would not line up from one Aniimo to the next.
+      expect(js.spreadByBand(defenders)).toHaveLength(5);
+    }
+  });
+
+  test('the extremes an Aniimo tile shows are identical, labels included', () => {
+    for (const defenders of defenderSets) {
+      expect(js.extremes(defenders)).toEqual(ts.extremes(defenders));
+    }
+  });
+
   test('the 9x9 matrix is identical', () => {
     expect(js.matrix()).toEqual(ts.matrix());
   });
@@ -51,9 +66,9 @@ describe('matchups.mjs mirrors src/lib/chart.ts', () => {
   test('bands and formatting agree', () => {
     const multipliers = [...new Set(defenderSets.flatMap((d) => ts.order.map((a) => ts.against(a, d))))];
     for (const m of multipliers) {
-      expect(jsBand(m).key).toBe(tsBand(m).key);
-      // The .mjs labels use a plain "x" so a Node script can log them; the
-      // formatted numbers, which is what the pages print, must match exactly.
+      // Whole band, not just the key: an Aniimo tile prints `label` as a
+      // column heading from whichever side rendered it.
+      expect(jsBand(m)).toEqual(tsBand(m));
       expect(jsFormat(m)).toBe(tsFormat(m));
     }
   });

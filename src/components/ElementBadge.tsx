@@ -18,7 +18,7 @@ export const Icon = ({ id }: { id: string }) => (
   </svg>
 );
 
-type PlateSize = 'xs' | 'sm' | 'md' | 'lg';
+type PlateSize = 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
 
 /** The square element plate. */
 export function ElPlate({
@@ -57,7 +57,7 @@ export function ElChip({ element }: { element: Element }) {
  * token in the design - it falls back to a plain tag rather than borrowing
  * another role's icon. Mirrored in scripts/lib/html.mjs.
  */
-const ROLE_GLYPH: Record<string, string> = {
+export const ROLE_GLYPH: Record<string, string> = {
   dps: 'dps',
   heal: 'heal',
   sup: 'support',
@@ -74,9 +74,12 @@ const ROLE_LABEL: Record<string, string> = {
   energy: 'Energy',
 };
 
+/** How a role is written for a reader. Mirrors ROLE_LABEL in scripts/lib/html.mjs. */
+export const roleLabel = (role: string): string => ROLE_LABEL[slug(role)] ?? role;
+
 export function RoleChip({ role }: { role: string }) {
   const key = slug(role);
-  const label = ROLE_LABEL[key] ?? role;
+  const label = roleLabel(role);
   const icon = ROLE_GLYPH[key];
 
   if (!icon) return <span className="tag">{label}</span>;

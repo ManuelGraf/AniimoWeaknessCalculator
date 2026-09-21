@@ -34,6 +34,43 @@ export function createChart(data) {
   }
 
   /**
+   * The same spread bucketed into the five bands, hardest first, with every
+   * band present whether or not anything lands in it - an Aniimo tile draws
+   * one column per band and they only line up across the grid if all five are
+   * always there. Mirrored from src/lib/chart.ts.
+   */
+  function spreadByBand(defenders) {
+    const spread = defenceSpread(defenders);
+    return BANDS.map((b) => ({
+      band: b,
+      entries: spread.filter((s) => band(s.multiplier).key === b.key),
+    }));
+  }
+
+  /**
+   * The two ends of that spread - what deals the most damage to this defender
+   * and what deals the least - which is the whole of what an Aniimo tile shows
+   * without being opened. Mirrored from src/lib/chart.ts.
+   */
+  function extremes(defenders) {
+    const spread = defenceSpread(defenders);
+    const at = (m) => spread.filter((s) => round(s.multiplier) === round(m)).map((s) => s.element);
+
+    const top = spread[0].multiplier;
+    const bottom = spread[spread.length - 1].multiplier;
+    const flat = round(top) === round(bottom);
+
+    return {
+      most: { multiplier: top, elements: at(top), label: round(top) > 1 ? 'Weak to' : 'Hit hardest by' },
+      least: {
+        multiplier: bottom,
+        elements: flat ? [] : at(bottom),
+        label: round(bottom) < 1 ? 'Resists' : 'Takes least from',
+      },
+    };
+  }
+
+  /**
    * What one attacking element does to every single defender, hardest hit
    * first. Deliberately not called offenceSpread: the function of that name in
    * src/lib/chart.ts answers a different question (the best an Aniimo's whole
@@ -74,6 +111,8 @@ export function createChart(data) {
     pair,
     against,
     defenceSpread,
+    spreadByBand,
+    extremes,
     attackSpread,
     matrix,
     weakTo,
@@ -88,12 +127,16 @@ export function createChart(data) {
 // rounded value rather than comparing raw products.
 export const round = (n) => Math.round(n * 10000) / 10000;
 
+// Byte-identical to BANDS in src/lib/chart.ts, labels included: an Aniimo
+// tile prints `label` as its column heading and is rendered from here on the
+// static page and from there once the app boots, so the two spellings would
+// show up as a flicker.
 export const BANDS = [
-  { min: 2.5, key: 'x256', label: '2.56x', blurb: 'Hits both halves' },
-  { min: 1.5, key: 'x16', label: '1.6x', blurb: 'Super effective' },
-  { min: 0.99, key: 'x1', label: '1x', blurb: 'Neutral' },
-  { min: 0.6, key: 'x0625', label: '0.625x', blurb: 'Resisted' },
-  { min: 0, key: 'x039', label: '0.39x', blurb: 'Resisted twice' },
+  { min: 2.5, key: 'x256', mult: 2.56, label: '2.56×', blurb: 'Hits both halves' },
+  { min: 1.5, key: 'x16', mult: 1.6, label: '1.6×', blurb: 'Super effective' },
+  { min: 0.99, key: 'x1', mult: 1, label: '1×', blurb: 'Neutral' },
+  { min: 0.6, key: 'x0625', mult: 0.625, label: '0.625×', blurb: 'Resisted' },
+  { min: 0, key: 'x039', mult: 0.390625, label: '0.39×', blurb: 'Resisted twice' },
 ];
 
 export function band(multiplier) {

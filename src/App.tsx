@@ -6,6 +6,7 @@ import { useHashRoute, type Route } from './lib/useHashRoute';
 import type { Aniimo, Element } from './types';
 
 import { AniimoCombobox } from './components/AniimoCombobox';
+import { AniimoGrid } from './components/AniimoGrid';
 import { DefencePanel } from './components/DefencePanel';
 import { ElPlate, RoleChip } from './components/ElementBadge';
 import { MatrixView } from './components/MatrixView';
@@ -82,12 +83,36 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
       <Header
         meta={db.meta}
         view={route.view}
-        onView={(v) => navigate(v === 'chart' ? { view: 'chart' } : lastCalc.current)}
+        onView={(v) =>
+          navigate(v === 'chart' ? { view: 'chart' } : v === 'roster' ? { view: 'roster' } : lastCalc.current)
+        }
       />
 
       <main className="page page--narrow section">
         {route.view === 'chart' ? (
           <MatrixView chart={chart} />
+        ) : route.view === 'roster' ? (
+          <div className="stack">
+            {/*
+              The static /aniimo/ page keeps its own headline and lede, so this
+              only adds one when the app is running on its own.
+            */}
+            {!isPrerendered() && (
+              <div>
+                <h2 className="roster-title">All {db.meta.counts.forms} Aniimo and their weaknesses</h2>
+                <p className="muted">
+                  Every form in the game, each with its whole defensive spread on it. Open one to
+                  score its own moves.
+                </p>
+              </div>
+            )}
+            <AniimoGrid
+              chart={chart}
+              roster={db.roster}
+              siteRoot={siteRoot()}
+              onSelect={(a) => selectAniimo(a)}
+            />
+          </div>
         ) : (
           <div className="stack">
             <section className="card">
@@ -255,7 +280,11 @@ function SelectionSummary({ aniimo }: { aniimo: Aniimo }) {
  * "Aniimo" is written in mixed case and uppercased by CSS: the accessible name
  * and anything copied off the page stay readable.
  */
-function Header({ meta, view, onView }: { meta: Database['meta']; view: 'calc' | 'chart'; onView: (v: 'calc' | 'chart') => void }) {
+type View = Route['view'];
+
+const VIEW_LABEL: Record<View, string> = { calc: 'Calculator', roster: 'Aniimo', chart: 'Full chart' };
+
+function Header({ meta, view, onView }: { meta: Database['meta']; view: View; onView: (v: View) => void }) {
   const synced = new Date(meta.generatedAt);
   const up = siteRoot();
 
@@ -292,22 +321,22 @@ function Header({ meta, view, onView }: { meta: Database['meta']; view: 'calc' |
       )}
 
       <div className="view-toggle" role="group" aria-label="Views">
-        {(['calc', 'chart'] as const).map((v) => (
+        {(['calc', 'roster', 'chart'] as const).map((v) => (
           <button
             key={v}
             type="button"
             onClick={() => onView(v)}
             aria-current={view === v ? 'page' : undefined}
           >
-            {v === 'calc' ? 'Calculator' : 'Full chart'}
+            {VIEW_LABEL[v]}
           </button>
         ))}
       </div>
 
-      {/* Only a prerendered page has siblings to link to. */}
+      {/* Only a prerendered page has siblings to link to. The roster is in the
+          toggle above, so all that is left here is the on-page FAQ anchor. */}
       {isPrerendered() && (
         <nav className="nav" aria-label="Primary">
-          <a href={`${up}aniimo/`}>Aniimo</a>
           <a href={`${up}#faq`}>FAQ</a>
         </nav>
       )}
