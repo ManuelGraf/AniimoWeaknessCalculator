@@ -671,7 +671,7 @@ export function aniimoPage({ chart, aniimo, roster, up }) {
   ]);
 
   const statsBlock = aniimo.stats
-    ? `<dl class="stats">${[
+    ? `<dl class="stats" data-app-owns>${[
         ['HP', aniimo.stats.hp],
         ['P.ATK', aniimo.stats.physicalAttack],
         ['M.ATK', aniimo.stats.magicAttack],
@@ -704,9 +704,9 @@ ${aniimo.number ? `<span class="form-hero__no">No. ${esc(aniimo.number)}</span>`
 ${covers.length ? `<p><strong>Its own moves cover ${esc(list(covers))}</strong>${canHit.length ? `, which hits ${esc(list(canHit))} for 1.6×` : ''}.</p>` : ''}
 </div>
 
-${aniimo.description ? `<p class="lede">${esc(aniimo.description)}</p>` : ''}
+${aniimo.description ? `<p class="lede" data-app-owns>${esc(aniimo.description)}</p>` : ''}
 ${statsBlock}
-<p data-app-owns><a class="btn btn--primary" href="${up}#/aniimo/${esc(aniimo.id)}">Open ${esc(aniimo.name)} in the calculator</a></p>`)}
+<p data-app-owns><a class="btn btn--primary" href="${up}#/aniimo/${esc(aniimo.id)}">Score ${esc(aniimo.name)}’s moves</a></p>`)}
 
 <main class="page page--narrow section">
 <section class="card card--flow" data-app-owns>

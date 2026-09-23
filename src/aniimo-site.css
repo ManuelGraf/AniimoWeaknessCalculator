@@ -339,38 +339,7 @@ body { position: relative; }
   .band { grid-template-columns: 1fr; gap: 10px; }
 }
 
-/* ---------------------------------------------------------------- offence */
-
-.coverage { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 8px; }
-
-.coverage__btn {
-  appearance: none; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; min-height: 76px; padding: 10px 6px;
-  border-radius: var(--r-md);
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  font-family: inherit;
-  transition: background 120ms ease, border-color 120ms ease;
-}
-.coverage__btn:hover { background: rgb(var(--el-rgb) / 0.08); border-color: rgb(var(--el-rgb) / 0.35); }
-.coverage__btn[aria-pressed="true"] {
-  background: rgb(var(--el-rgb) / 0.12);
-  border-color: rgb(var(--el-rgb) / 0.6);
-  box-shadow: 0 0 30px -12px rgb(var(--el-rgb) / 1);
-}
-.coverage__el {
-  font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--el);
-}
-.coverage__mult {
-  font-family: var(--font-display); font-size: 15px; font-weight: 700;
-  color: var(--v-text); font-variant-numeric: tabular-nums;
-}
-.coverage__via {
-  font-size: 10.5px; color: var(--text-mute);
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+/* --------------------------------------------- offence: the best result */
 
 .best {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
@@ -394,28 +363,13 @@ body { position: relative; }
   color: var(--v-text); font-variant-numeric: tabular-nums;
 }
 .best__via { font-size: 11.5px; color: var(--text-mute); }
-.best__clear { margin-left: auto; }
 
+/* The list a move row sits in, and the two lines every row carries. The row
+   itself is .move-row, in the detail-view block at the end of this file. */
 .moves { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.move {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 14px; border-radius: var(--r-md);
-  background: var(--surface-subtle); border: 1px solid var(--line-faint);
-}
-.move__body { min-width: 0; flex: 1 1 auto; }
-.move__name {
-  display: block; font-size: 14px; font-weight: 600; color: var(--text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 .move__meta {
   display: block; font-size: 11.5px; color: var(--text-mute);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.move__score { flex-shrink: 0; text-align: right; }
-.move__mult {
-  display: block;
-  font-family: var(--font-display); font-size: 15px; font-weight: 700;
-  color: var(--v-text); font-variant-numeric: tabular-nums;
 }
 .move__eff { display: block; font-size: 11px; color: var(--text-mute); font-variant-numeric: tabular-nums; }
 
@@ -443,26 +397,6 @@ body { position: relative; }
   color: var(--accent-ink); font-weight: 700;
   background: linear-gradient(170deg, #8CF0D8, var(--accent-deep));
 }
-
-.selection {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-  margin-top: 18px; padding: 14px;
-  border-radius: var(--r-lg);
-  background: var(--surface-subtle); border: 1px solid var(--line-faint);
-}
-.selection__art {
-  width: 84px; height: 84px; flex-shrink: 0; border-radius: var(--r-md);
-  object-fit: contain; padding: 4px;
-  display: grid; place-items: center;
-  font-size: 13px; color: var(--text-mute);
-  background: var(--surface-subtle);
-}
-.selection__body { flex: 1 1 200px; min-width: 0; }
-.selection__name {
-  font-family: var(--font-display); font-size: 17px; font-weight: 700;
-  color: var(--text-strong); margin: 0;
-}
-.selection__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 .note { font-size: 12px; color: var(--text-mute); margin: 8px 0 0; }
 .empty { text-align: center; padding: 48px 16px; font-size: 15px; color: var(--text-mute); }
@@ -685,11 +619,7 @@ body { position: relative; }
 
 /* ------------------------------------------------------------- responsive */
 
-@media (max-width: 1080px) {
-  .coverage { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-}
 @media (max-width: 760px) {
-  .coverage { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .form-hero__art { width: 84px; height: 84px; }
   /* Not narrower: a band column has to stay wide enough for two plates.
      Below roughly 400px this resolves to a single full-width tile, which is
@@ -707,4 +637,230 @@ body { position: relative; }
   .view-toggle button { padding-inline: 10px; font-size: 13px; }
   .brand { min-width: 0; }
   .brand__name { font-size: 15px; letter-spacing: 0.1em; }
+}
+
+/* ==========================================================================
+   Aniimo detail view
+
+   The single-Aniimo page (src/components/AniimoDetail.tsx). It reads as one
+   of the roster tiles enlarged, so it reuses the tile's own blocks where it
+   can - .tile__band for the spread bar, .filters__el for the target picker,
+   .best for the headline result - and only adds what is genuinely new: the
+   hero card and the scored move row.
+
+   No new colours and no new fonts, per the rules at the top of this file:
+   every value resolves to a section 1 token, or to the element tint
+   (data-el -> --el-rgb) or the verdict tint (data-verdict -> --v-rgb).
+   ========================================================================== */
+
+/* The card below carries the name, so the crumb is a line of navigation
+   rather than a heading with room under it. */
+.detail-crumbs { margin: 0; }
+
+/* ------------------------------------------------------------- hero card */
+
+.hero-card { position: relative; overflow: hidden; }
+
+/* Two element glows and a faint grid, all decorative and all behind the
+   content - .hero-card__body and .hero-card__spread are positioned, so they
+   stack above these without needing a z-index. The second glow carries its
+   own data-el, which is how a dual-element form gets a colour from each side. */
+.hero-card__glow,
+.hero-card__glow2,
+.hero-card__grid { position: absolute; inset: 0; pointer-events: none; }
+.hero-card__glow  { background: radial-gradient(circle at 22% 38%, rgb(var(--el-rgb) / 0.30), rgb(var(--el-rgb) / 0) 58%); }
+.hero-card__glow2 { background: radial-gradient(circle at 92% 0%,  rgb(var(--el-rgb) / 0.20), rgb(var(--el-rgb) / 0) 50%); }
+.hero-card__grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: linear-gradient(120deg, #000, transparent 70%);
+          mask-image: linear-gradient(120deg, #000, transparent 70%);
+}
+
+/* Two columns at page width, stacked below roughly 660px. */
+.hero-card__body {
+  position: relative;
+  display: grid; gap: 28px; align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  padding: clamp(18px, 3vw, 32px);
+}
+
+.hero-card__figure {
+  position: relative; aspect-ratio: 1 / 1; overflow: hidden;
+  border-radius: var(--r-xl);
+  background: rgb(var(--el-rgb) / 0.06);
+  border: 1px solid rgb(var(--el-rgb) / 0.24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 80px -40px rgb(var(--el-rgb) / 1);
+}
+.hero-card__no {
+  position: absolute; right: 14px; bottom: 2px;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(64px, 11vw, 112px); line-height: 1; letter-spacing: -0.02em;
+  color: rgba(255,255,255,0.05); font-variant-numeric: tabular-nums;
+}
+.hero-card__art {
+  position: absolute; inset: 6%; width: 88%; height: 88%;
+  object-fit: contain;
+  filter: drop-shadow(0 24px 30px rgba(0,0,0,0.55));
+}
+/* Stands in for artwork the source never published, or that fails to load. */
+.hero-card__fallback {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 40px; font-weight: 700;
+  color: var(--text-faint);
+}
+
+/* The bigger version of .tile__els and .tile__role, pinned the same way. */
+.hero-card__els,
+.hero-card__roles { position: absolute; top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.hero-card__els   { left: 14px; }
+.hero-card__roles { right: 14px; }
+/* An opaque surface under the plate's own translucent gradient, so a plate
+   never reads as a tint of whatever part of the artwork sits behind it. */
+.hero-card__els .el-plate {
+  background-color: var(--surface-solid);
+  box-shadow: 0 4px 14px -4px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.hero-card__role {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; color: var(--el);
+  background: var(--surface-solid);
+  background-image: linear-gradient(rgb(var(--el-rgb) / 0.22), rgb(var(--el-rgb) / 0.22));
+  border: 1px solid rgb(var(--el-rgb) / 0.45);
+  box-shadow: 0 4px 14px -4px rgba(0,0,0,0.85);
+}
+.hero-card__role .icon { width: 22px; height: 22px; }
+
+.hero-card__info { min-width: 0; }
+.hero-card__name {
+  font-size: clamp(36px, 5vw, 54px); font-weight: 700;
+  letter-spacing: -0.015em; line-height: 1.05; margin: 0;
+}
+.hero-card__morph { margin: 6px 0 0; font-size: 14px; }
+.hero-card__tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.hero-card__desc {
+  margin: 16px 0 0; max-width: 52ch;
+  font-size: 14.5px; line-height: 1.6; color: var(--text-dim); text-wrap: pretty;
+}
+/* Six stats in three fixed columns rather than the auto-fit .stats uses, so
+   they read as HP / P.ATK / M.ATK over P.DEF / M.DEF / Haste. */
+.hero-card__stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* The spread bar, on the same five bands as every tile in the grid. */
+.hero-card__spread {
+  position: relative;
+  padding: 18px clamp(18px, 3vw, 32px) 22px;
+  border-top: 1px solid var(--line);
+  background: rgba(255,255,255,0.02);
+}
+.hero-spread { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.hero-spread__band { padding: 9px 4px 10px; gap: 8px; border-radius: 12px; }
+.hero-spread__band .tile__bandMult { font-size: 13px; }
+.hero-spread__band .tile__bandEls { gap: 4px; }
+.hero-spread__band .tile__bandNone { line-height: 30px; }
+
+/* ---------------------------------------------------------- target picker */
+
+.target-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.target-row__clear { font-size: 12.5px; }
+
+/* ------------------------------------------- best move (.best, extended) */
+
+.best__move { flex: 1 1 220px; min-width: 0; }
+.best__name {
+  display: block; font-family: var(--font-display); font-size: 16px; font-weight: 700;
+  color: var(--text-strong); line-height: 1.2;
+}
+.best__score { text-align: right; }
+.best__score .best__mult { display: block; line-height: 1; }
+
+/* ------------------------------------------------------------- move rows */
+
+/* A row in .moves: the move's element plate, its name and chips, and the sum
+   that ranked it. Allowed to wrap, because the score group is wide and a long
+   move name would otherwise squeeze it off the row. */
+.move-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  padding: 12px 14px 12px 12px; border-radius: var(--r-md);
+  background: var(--surface-subtle); border: 1px solid var(--line-faint);
+}
+/* The top row is tinted by the move's own element, which is also what the
+   Best chip beside the name is pointing at. */
+.move-row[data-best="true"] {
+  background: rgb(var(--el-rgb) / 0.08);
+  border-color: rgb(var(--el-rgb) / 0.5);
+  box-shadow: 0 0 40px -18px rgb(var(--el-rgb) / 1);
+}
+.move-row__body { flex: 1 1 180px; min-width: 0; }
+.move-row__title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.move-row__name { font-size: 14.5px; font-weight: 600; color: var(--text-strong); }
+.move-row__body .move__meta { margin-top: 2px; }
+
+.stab-chip,
+.best-chip {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-display); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.stab-chip {
+  color: var(--el);
+  background: rgb(var(--el-rgb) / 0.14);
+  border: 1px solid rgb(var(--el-rgb) / 0.42);
+}
+.best-chip { color: var(--accent-ink); background: linear-gradient(170deg, #8CF0D8, var(--accent-deep)); }
+
+.move-row__score { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.move-row__formula {
+  display: flex; align-items: baseline; gap: 5px; white-space: nowrap;
+  font-family: var(--font-display); font-size: 13px; font-weight: 600;
+  color: var(--text-mute); font-variant-numeric: tabular-nums;
+}
+.move-row__base { color: var(--text-dim); }
+.move-row__stab { color: var(--text-faint); }
+.move-row__stab[data-stab="true"] { color: var(--el); }
+.move-row__mult { color: var(--v-text); }
+.move-row__pill { padding: 5px 10px; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.move-row__eff { min-width: 52px; text-align: right; }
+.move-row__effNum {
+  display: block; font-family: var(--font-display); font-size: 22px; font-weight: 700;
+  line-height: 1; color: var(--text-strong); font-variant-numeric: tabular-nums;
+}
+.move-row__eff .move__eff { margin-top: 3px; }
+.move-row__none { margin-left: auto; font-size: 12px; color: var(--text-faint); }
+
+/* -------------------------------------------------------- utility & traits */
+
+.utility { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.utility__item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px 7px 8px; border-radius: var(--r-pill);
+  background: var(--surface-subtle); border: 1px solid var(--line-faint);
+}
+.utility__tag { padding: 2px 8px; font-size: 9.5px; }
+.utility__name { font-size: 13px; font-weight: 600; color: var(--text); }
+
+@media (max-width: 660px) {
+  /* Stacked, the figure would be a square as tall as the phone is wide and
+     push the name below the fold. Capped and centred instead. */
+  .hero-card__figure { max-width: 340px; width: 100%; margin-inline: auto; }
+  .hero-card__name { font-size: clamp(30px, 8vw, 40px); }
+
+  /* The sum is the widest thing in a move row and the first to go: the pill
+     and the effective number carry the same answer in less space. */
+  .move-row__formula { display: none; }
+}
+
+@media (max-width: 560px) {
+  /* Five band columns across a phone leave about 58px inside each one, which
+     is one 30px plate per line - so the 1x band, where most of the nine
+     usually land, becomes a six-row tower. Shrunk to a size that fits two
+     across, the same way the tile bar does it. */
+  .hero-spread { gap: 4px; }
+  .hero-spread__band { padding: 8px 3px 9px; gap: 6px; }
+  .hero-spread__band .el-plate { --plate-size: 22px; --plate-radius: 7px; }
+  .hero-spread__band .tile__bandMult { font-size: 11px; }
+  .hero-spread__band .tile__bandNone { line-height: 22px; }
 }

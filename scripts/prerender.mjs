@@ -220,7 +220,7 @@ async function main() {
       title: `${displayName(a)} Weaknesses & Type Effectiveness`,
       description: page.description,
       page,
-      route: { view: 'calc', kind: 'aniimo', id: a.id },
+      route: { view: 'aniimo', id: a.id },
       // The official render makes a real card when the page is shared.
       ogImage: a.image ?? ogImage,
       priority: a.isBasic ? '0.7' : '0.6',

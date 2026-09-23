@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { createChart } from './lib/chart';
-import { displayName, loadDatabase, moveElements, type Database } from './lib/data';
+import { loadDatabase, type Database } from './lib/data';
 import { useHashRoute, type Route } from './lib/useHashRoute';
 import type { Aniimo, Element } from './types';
 
 import { AniimoCombobox } from './components/AniimoCombobox';
+import { AniimoDetail } from './components/AniimoDetail';
 import { AniimoGrid } from './components/AniimoGrid';
 import { DefencePanel } from './components/DefencePanel';
-import { ElPlate, RoleChip } from './components/ElementBadge';
+import { ElPlate } from './components/ElementBadge';
 import { MatrixView } from './components/MatrixView';
-import { OffencePanel } from './components/OffencePanel';
 
 export default function App() {
   const [db, setDb] = useState<Database | null>(null);
@@ -48,23 +48,22 @@ type Nav = ReturnType<typeof useHashRoute>[1];
 function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof useHashRoute>[0]; navigate: Nav }) {
   const chart = useMemo(() => createChart(db.chart), [db.chart]);
 
-  // Remember what was being inspected so the chart tab is a detour, not a reset.
+  // Remember the pairing being inspected, so the chart tab and a form's own
+  // page are both detours rather than a reset.
   const lastCalc = useRef<Extract<Route, { view: 'calc' }>>({ view: 'calc', kind: 'empty' });
   if (route.view === 'calc') lastCalc.current = route;
 
   const byId = useMemo(() => new Map(db.roster.map((a) => [a.id, a])), [db.roster]);
 
   // The hash is the single source of truth for what is being inspected.
-  const selected: Aniimo | null =
-    route.view === 'calc' && route.kind === 'aniimo' ? (byId.get(route.id) ?? null) : null;
+  const selected: Aniimo | null = route.view === 'aniimo' ? (byId.get(route.id) ?? null) : null;
 
   const elements: Element[] = useMemo(() => {
-    if (selected) return selected.elements;
     if (route.view === 'calc' && route.kind === 'elements') {
       return chart.order.filter((e) => route.elements.includes(e.toLowerCase()));
     }
     return [];
-  }, [selected, route, chart.order]);
+  }, [route, chart.order]);
 
   const setElements = (next: Element[]) =>
     navigate(next.length ? { view: 'calc', kind: 'elements', elements: next } : { view: 'calc', kind: 'empty' });
@@ -76,7 +75,7 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
   };
 
   const selectAniimo = (a: Aniimo | null) =>
-    navigate(a ? { view: 'calc', kind: 'aniimo', id: a.id } : { view: 'calc', kind: 'empty' });
+    navigate(a ? { view: 'aniimo', id: a.id } : { view: 'calc', kind: 'empty' });
 
   return (
     <>
@@ -91,6 +90,26 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
       <main className="page page--narrow section">
         {route.view === 'chart' ? (
           <MatrixView chart={chart} />
+        ) : route.view === 'aniimo' ? (
+          // Keyed by id so opening another form starts its target picker clean
+          // rather than carrying the last one's over.
+          selected ? (
+            <AniimoDetail
+              key={selected.id}
+              chart={chart}
+              aniimo={selected}
+              siteRoot={siteRoot()}
+              onRoster={() => navigate({ view: 'roster' })}
+            />
+          ) : (
+            <p className="empty">
+              No Aniimo with that name.{' '}
+              <button type="button" className="linkish" onClick={() => navigate({ view: 'roster' })}>
+                Browse all {db.meta.counts.forms} forms
+              </button>
+              .
+            </p>
+          )
         ) : route.view === 'roster' ? (
           <div className="stack">
             {/*
@@ -126,7 +145,12 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
                   <label htmlFor="aniimo-search" className="eyebrow">
                     Find an Aniimo
                   </label>
-                  <AniimoCombobox roster={db.roster} selected={selected} onSelect={selectAniimo} />
+                  {/*
+                    Picking one leaves the calculator for that form's own page,
+                    so nothing stays selected here - the search is a way in, not
+                    a second place to hold a selection.
+                  */}
+                  <AniimoCombobox roster={db.roster} selected={null} onSelect={selectAniimo} />
                   <p className="note">
                     {db.meta.counts.forms} forms, including regional and Prismana variants.
                   </p>
@@ -159,7 +183,6 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
                   )}
                 </div>
 
-                {selected && <SelectionSummary aniimo={selected} />}
               </div>
             </section>
 
@@ -168,29 +191,12 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
                 Pick an element, or search for an Aniimo, to see what hits it hardest.
               </p>
             ) : (
-              <>
-                <Panel
-                  title="Taking damage"
-                  subtitle={
-                    selected
-                      ? `What each element does to ${displayName(selected)}.`
-                      : `What each element does to a ${elements.join(' / ')} defender.`
-                  }
-                >
-                  <DefencePanel chart={chart} defenders={elements} />
-                </Panel>
-
-                {selected && (
-                  <Panel
-                    title="Dealing damage"
-                    subtitle={`Scored from the ${moveElements(selected).length || 'no'} move element${
-                      moveElements(selected).length === 1 ? '' : 's'
-                    } ${displayName(selected)} actually has — not from its own element.`}
-                  >
-                    <OffencePanel chart={chart} aniimo={selected} />
-                  </Panel>
-                )}
-              </>
+              <Panel
+                title="Taking damage"
+                subtitle={`What each element does to a ${elements.join(' / ')} defender.`}
+              >
+                <DefencePanel chart={chart} defenders={elements} />
+              </Panel>
             )}
           </div>
         )}
@@ -216,59 +222,6 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
   );
 }
 
-function SelectionSummary({ aniimo }: { aniimo: Aniimo }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  // Official stage render first, the round head as a stand-in if it is missing.
-  const src = aniimo.image ?? aniimo.head;
-
-  return (
-    <div className="selection">
-      {src && !imgFailed ? (
-        <img
-          className="selection__art"
-          src={src}
-          alt={aniimo.name}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          onError={() => setImgFailed(true)}
-        />
-      ) : (
-        <span className="selection__art">{aniimo.name.slice(0, 2)}</span>
-      )}
-
-      <div className="selection__body">
-        <div className="form-hero__meta">
-          <h3 className="selection__name">{aniimo.name}</h3>
-          {!aniimo.isBasic && <span className="muted">{aniimo.morphology}</span>}
-          {aniimo.number && <span className="form-hero__no">No. {aniimo.number}</span>}
-        </div>
-        <div className="selection__tags">
-          {aniimo.elements.map((el) => (
-            <ElPlate key={el} element={el} size="sm" />
-          ))}
-          {aniimo.roles.map((r) => (
-            <RoleChip key={r} role={r} />
-          ))}
-        </div>
-      </div>
-
-      {aniimo.stats && (
-        <dl className="stats">
-          {([['HP', aniimo.stats.hp], ['P.ATK', aniimo.stats.physicalAttack], ['M.ATK', aniimo.stats.magicAttack]] as const).map(
-            ([label, value]) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>{value}</dd>
-              </div>
-            ),
-          )}
-        </dl>
-      )}
-    </div>
-  );
-}
-
 /**
  * The glass header.
  *
@@ -282,10 +235,20 @@ function SelectionSummary({ aniimo }: { aniimo: Aniimo }) {
  */
 type View = Route['view'];
 
-const VIEW_LABEL: Record<View, string> = { calc: 'Calculator', roster: 'Aniimo', chart: 'Full chart' };
+/** The three the toggle offers; `aniimo` is a page you arrive at, not a tab. */
+type Tab = 'calc' | 'roster' | 'chart';
 
-function Header({ meta, view, onView }: { meta: Database['meta']; view: View; onView: (v: View) => void }) {
+const VIEW_LABEL: Record<Tab, string> = { calc: 'Calculator', roster: 'Aniimo', chart: 'Full chart' };
+
+/**
+ * Which button is lit. One form's own page belongs to the roster it was opened
+ * from, so "Aniimo" stays current there rather than the toggle going blank.
+ */
+const currentTab = (view: View): Tab => (view === 'aniimo' ? 'roster' : view);
+
+function Header({ meta, view, onView }: { meta: Database['meta']; view: View; onView: (v: Tab) => void }) {
   const synced = new Date(meta.generatedAt);
+  const current = currentTab(view);
   const up = siteRoot();
 
   const brand = (
@@ -326,7 +289,7 @@ function Header({ meta, view, onView }: { meta: Database['meta']; view: View; on
             key={v}
             type="button"
             onClick={() => onView(v)}
-            aria-current={view === v ? 'page' : undefined}
+            aria-current={current === v ? 'page' : undefined}
           >
             {VIEW_LABEL[v]}
           </button>

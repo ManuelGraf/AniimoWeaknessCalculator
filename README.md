@@ -20,26 +20,40 @@ Requires Node 20.19+ (Vite's floor).
 ## What it does
 
 **Defence — "what hits this hard?"**
-Choose one or two elements, or search an Aniimo, and every attacking element is grouped by what it
-deals: 2.56×, 1.6×, 1×, 0.625×, 0.39×.
+Choose one or two elements and every attacking element is grouped by what it deals: 2.56×, 1.6×,
+1×, 0.625×, 0.39×. The search box beside the picker is the way to one Aniimo in particular.
 
-**Offence — "what can this hit?"**
-Scored from the elements an Aniimo's *moves* actually have, not from its own element. That
-distinction matters: Fire-type Emberpup carries an Earth move (Pebble Kick), and Water/Ice Glacy
-carries a Light one (Glimmer Shot), so both cover more than their own typing suggests.
+**One Aniimo — its own page**
+Clicking a tile opens that form on its own: the art with the same element plates and role badges the
+tile carried, its number, stage, elements, roles, description and six stats, and the same five-band
+spread bar enlarged underneath.
 
-Pick **one or two** target elements and the moves are ranked by `power × multiplier` against that
-exact defender. The two together are what make it useful — the best multiplier is often not the best
-move. Hexxin into a Water/Ice defender:
+Below that, every attacking move it has, ranked by **effective power**:
 
-| Move | Element | Multiplier | Effective |
-| --- | --- | --- | --- |
-| Annihilation Bomb | Dark | 0.625× | **103** |
-| Shard Impact | Earth | 1× | 54 |
-| Euphoric Sonic Blast | Grass | 1.6× | 48 |
+```
+effective = base power × STAB × effectiveness
+```
 
-The super-effective option comes last. Raw power outweighs the matchup here, which a coverage grid
-alone will not tell you.
+STAB is the same-element bonus — ×1.25 when a move shares one of the Aniimo's own elements.
+Effectiveness comes from the target you pick, one or two elements, and a dual multiplies both sides.
+Moves are scored from the elements an Aniimo's *moves* actually have, not from its own element: Fire
+Emberpup carries an Earth move (Pebble Kick) and Water/Ice Glacy a Light one (Glimmer Shot), so both
+cover more than their typing suggests.
+
+The three together are what make it useful — the best multiplier is often not the best move. Hexxin
+(Dark/Grass) into a Water/Ice defender:
+
+| Move | Element | Base | STAB | Multiplier | Effective |
+| --- | --- | --- | --- | --- | --- |
+| Annihilation Bomb | Dark | 164 | ×1.25 | 0.625× | **128** |
+| Euphoric Sonic Blast | Grass | 30 | ×1.25 | 1.6× | 60 |
+| Shard Impact | Earth | 54 | — | 1× | 54 |
+| Malicious Outburst | Dark | 68 | ×1.25 | 0.625× | 53 |
+
+The resisted move wins by a wide margin, and the super-effective one comes second — which a
+multiplier on its own will not tell you. Multipliers are tinted from the attacker's side on this
+page: above 1× is the good outcome. Everywhere else on the site the same number is read from the
+defender's side, the spread bar on this page included.
 
 **Aniimo — the whole roster as tiles**
 Every form as a tile: official art with its element and role pinned to it as badges, the dex number
@@ -49,7 +63,7 @@ is readable while scanning, and the columns line up down the grid because all fi
 whether or not anything falls in them.
 
 Filter by name, by role, or by up to two elements at once — two elements means *both*, which is how
-you find an exact dual pairing. Clicking a tile opens it in the calculator.
+you find an exact dual pairing. Clicking a tile opens that form's own page.
 
 **Full chart** — the raw 9×9 grid, rows attack and columns defend.
 
@@ -158,14 +172,16 @@ aniimoguide. Every entry has both, and the test suite asserts they are still ima
 npm test
 ```
 
-Five suites, no fixtures — they run against the real committed data:
+Six suites, no fixtures — they run against the real committed data:
 
 - `src/lib/chart.test.ts` — matchup maths, including a 729-case check that dual-element order never
   changes the result, and aniimoguide's two published examples.
 - `src/lib/data.test.ts` — database integrity. Every Aniimo has 1–2 known elements, every offensive
   skill has a valid element, and off-element moves survive the merge. This is what catches a bad scrape.
-- `src/App.test.tsx` — renders the app against the real data: search, selection, deep links, chart,
-  and the handover from a prerendered page.
+- `src/App.test.tsx` — renders the app against the real data: search, routing to a form's own page,
+  deep links, the roster grid, the chart, and the handover from a prerendered page.
+- `src/components/AniimoDetail.test.tsx` — the move scoring behind that page: STAB, dual targets,
+  ranking by effective power, and moves with no power sinking to the bottom.
 - `scripts/lib/matchups.test.ts` — the prerenderer restates the matchup maths in plain JS; this
   checks it against `src/lib/chart.ts` for every attacker against all 45 defender combinations.
 - `scripts/lib/tile.test.tsx` — the Aniimo tile is written twice, as a component and as a template.
@@ -263,7 +279,7 @@ src/
   lib/chart.ts        matchup maths (no React, no DOM)
   lib/data.ts         loading, search ranking
   lib/useHashRoute.ts URL state
-  components/         combobox, roster grid, defence, offence, chart
+  components/         combobox, roster grid, one Aniimo's page, defence, chart
 scripts/
   sync.mjs            orchestrates a refresh, validates, writes
   lib/wiki.mjs        official wiki  (Nuxt payloads)
@@ -293,7 +309,8 @@ this order:
 - `src/aniimo-dark.css` - the delivered design system, kept byte-for-byte as handed over so it can
   be diffed against a redelivery. Tokens in section 1, components after.
 - `src/aniimo-site.css` - everything the design canvas did not cover: the prerendered article
-  pages, the combobox, the move list, the band groupings. No new colours or fonts.
+  pages, the combobox, the roster tiles, one Aniimo's page, the move list, the band groupings. No
+  new colours or fonts.
 
 `src/main.tsx` imports both, Vite bundles them into one hashed stylesheet, and `prerender.mjs`
 lifts that `<link>` out of `dist/index.html` onto all 274 generated pages. So the static page and

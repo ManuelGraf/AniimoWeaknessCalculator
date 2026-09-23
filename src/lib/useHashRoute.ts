@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
  * reaches the server.
  *
  *   #/aniimo              the whole roster as browsable tiles
- *   #/aniimo/glacy        a specific Aniimo (and its form)
+ *   #/aniimo/glacy        one Aniimo's own page (and its form)
  *   #/defense/water+ice   a bare element pairing
  *   #/chart               the full 9x9 chart
  *
@@ -24,10 +24,15 @@ declare global {
   }
 }
 
+/**
+ * `aniimo` is its own view rather than a third kind of `calc`: one Aniimo gets
+ * a whole page of its own (src/components/AniimoDetail.tsx), and the
+ * calculator underneath it only ever answers for a bare element pairing.
+ */
 export type Route =
-  | { view: 'calc'; kind: 'aniimo'; id: string }
   | { view: 'calc'; kind: 'elements'; elements: string[] }
   | { view: 'calc'; kind: 'empty' }
+  | { view: 'aniimo'; id: string }
   | { view: 'roster' }
   | { view: 'chart' };
 
@@ -36,7 +41,7 @@ export function parseHash(hash: string): Route {
   if (path === 'chart') return { view: 'chart' };
 
   const [head, rest] = [path.split('/')[0] ?? '', path.split('/')[1] ?? ''];
-  if (head === 'aniimo' && rest) return { view: 'calc', kind: 'aniimo', id: rest };
+  if (head === 'aniimo' && rest) return { view: 'aniimo', id: rest };
   // Bare `#/aniimo` is the roster, the same thing /aniimo/ serves statically.
   if (head === 'aniimo') return { view: 'roster' };
   if (head === 'defense' && rest) {
@@ -49,7 +54,7 @@ export function parseHash(hash: string): Route {
 export function formatHash(route: Route): string {
   if (route.view === 'chart') return '#/chart';
   if (route.view === 'roster') return '#/aniimo';
-  if (route.kind === 'aniimo') return `#/aniimo/${route.id}`;
+  if (route.view === 'aniimo') return `#/aniimo/${route.id}`;
   if (route.kind === 'elements') return `#/defense/${route.elements.join('+').toLowerCase()}`;
   return '#/';
 }

@@ -32,9 +32,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** The calculator is up once its search box is. */
 const ready = async () => {
   await waitFor(() => expect(screen.getByRole('combobox')).toBeTruthy());
 };
+
+/**
+ * What landed in one band of the hero card's spread bar. The bar is drawn
+ * aria-hidden - the same facts are given once in words beside it - so it is
+ * read out of the DOM here rather than through a role query.
+ */
+const spreadBand = (label: string): string[] => {
+  const band = [...document.querySelectorAll('.hero-spread__band')].find(
+    (b) => b.querySelector('.tile__bandMult')!.textContent === label,
+  );
+  if (!band) throw new Error(`no ${label} band on the spread bar`);
+  return [...band.querySelectorAll('.tile__bandEls .el-plate')].map((p) => p.getAttribute('data-el')!);
+};
+
+/**
+ * A form's own page is up once its name is on it. It has no combobox: picking
+ * an Aniimo leaves the calculator rather than holding a selection inside it.
+ */
+const detailReady = (name: string) => screen.findByRole('heading', { name });
 
 describe('App', () => {
   test('loads the database and shows the roster size', async () => {
@@ -67,7 +87,7 @@ describe('App', () => {
     expect(window.location.hash).toBe('#/defense/fire');
   });
 
-  test('searching an Aniimo selects it and shows both panels', async () => {
+  test('searching an Aniimo opens that form’s own page', async () => {
     const user = userEvent.setup();
     render(<App />);
     await ready();
@@ -77,31 +97,34 @@ describe('App', () => {
     await user.click(within(list).getAllByRole('option')[0]!);
 
     await waitFor(() => expect(window.location.hash).toBe('#/aniimo/glacy'));
-    expect(await screen.findByText('Taking damage')).toBeTruthy();
-    expect(await screen.findByText('Dealing damage')).toBeTruthy();
-    // Glacy is Water/Ice - the dual note only renders for two-element defenders.
-    expect(screen.getByText(/Both element sides are applied/i)).toBeTruthy();
+    await detailReady('Glacy');
+    expect(screen.getByText('Moves')).toBeTruthy();
+    // The crumb is the way back out, and the roster tab stays lit behind it.
+    expect(screen.getByRole('link', { name: /All Aniimo/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Aniimo' }).getAttribute('aria-current')).toBe('page');
   });
 
-  test('the offence panel scores moves against a two-element target', async () => {
+  test('the move list scores against a two-element target', async () => {
     const user = userEvent.setup();
     window.location.hash = '#/aniimo/emberpup';
     render(<App />);
-    await ready();
+    await detailReady('Emberpup');
 
     const targets = await screen.findByRole('group', { name: /target elements/i });
     await user.click(within(targets).getByRole('button', { name: /Water/ }));
     await user.click(within(targets).getByRole('button', { name: /Ice/ }));
 
-    // Both stay selected, and the move list is now scored against the pair.
-    expect(await screen.findByText('Moves vs Water / Ice')).toBeTruthy();
+    // Both stay selected, and the list is now scored against the pair.
+    expect(await screen.findByText(/^Moves vs Water \/ Ice/)).toBeTruthy();
 
-    // Emberpup has Fire and Earth moves. Into Water/Ice:
-    //   Fire  = 0.625 (Water resists) x 1.6  (strong vs Ice) = 1x
-    //   Earth = 0.625 (Water resists) x 1.6  (strong vs Ice) = 1x
-    // so the best it can manage is 1x, not a super-effective hit.
-    const summary = screen.getByRole('region', { name: /best result versus Water and Ice/i });
-    expect(within(summary).getByText('1×')).toBeTruthy();
+    // Emberpup has Fire and Earth moves. Into Water/Ice both come out at
+    // 0.625 (Water resists) x 1.6 (strong vs Ice) = 1x, so what separates them
+    // is base power and the 1.25 bonus the Fire ones carry:
+    //   Fire Kick   72 x 1.25 x 1 = 90
+    //   Pebble Kick 40 x 1    x 1 = 40
+    const best = screen.getByRole('region', { name: /best move versus Water and Ice/i });
+    expect(within(best).getByText('Fire Kick')).toBeTruthy();
+    expect(within(best).getByText('90')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: /clear target/i }));
     expect(await screen.findByText(/^Attacking moves/)).toBeTruthy();
@@ -111,27 +134,32 @@ describe('App', () => {
     const user = userEvent.setup();
     window.location.hash = '#/aniimo/emberpup';
     render(<App />);
-    await ready();
+    await detailReady('Emberpup');
 
     const targets = await screen.findByRole('group', { name: /target elements/i });
     await user.click(within(targets).getByRole('button', { name: /Water/ }));
     await user.click(within(targets).getByRole('button', { name: /Ice/ }));
     await user.click(within(targets).getByRole('button', { name: /Grass/ }));
 
-    expect(await screen.findByText('Moves vs Ice / Grass')).toBeTruthy();
+    expect(await screen.findByText(/^Moves vs Ice \/ Grass/)).toBeTruthy();
   });
 
-  test('a deep link restores the selection', async () => {
+  test('a deep link opens the form it names', async () => {
     window.location.hash = '#/aniimo/emberpup';
     render(<App />);
-    await ready();
-    expect(await screen.findByRole('heading', { name: 'Emberpup' })).toBeTruthy();
-    expect(await screen.findByText('Dealing damage')).toBeTruthy();
+    await detailReady('Emberpup');
+    expect(screen.getByText('Moves')).toBeTruthy();
   });
 
-  test('switching to the chart and back keeps the selection', async () => {
+  test('a deep link to a form that is not in the data says so', async () => {
+    window.location.hash = '#/aniimo/not-an-aniimo';
+    render(<App />);
+    expect(await screen.findByText(/No Aniimo with that name/i)).toBeTruthy();
+  });
+
+  test('switching to the chart and back keeps the pairing', async () => {
     const user = userEvent.setup();
-    window.location.hash = '#/aniimo/glacy';
+    window.location.hash = '#/defense/fire+water';
     render(<App />);
     await ready();
 
@@ -139,8 +167,8 @@ describe('App', () => {
     expect(await screen.findByRole('table')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Calculator' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/aniimo/glacy'));
-    expect(await screen.findByRole('heading', { name: 'Glacy' })).toBeTruthy();
+    await waitFor(() => expect(window.location.hash).toBe('#/defense/fire+water'));
+    expect(await screen.findByText('Taking damage')).toBeTruthy();
   });
 
   test('an Aniimo added by a future sync flows through with no code change', async () => {
@@ -185,17 +213,16 @@ describe('App', () => {
     const option = within(list).getAllByRole('option')[0]!;
     expect(within(option).getByText('Zzztest')).toBeTruthy();
 
-    // 2. Selecting it routes, and both panels score its new element pair.
+    // 2. Selecting it routes to its own page, which reads its new element pair.
     await user.click(option);
     await waitFor(() => expect(window.location.hash).toBe('#/aniimo/zzztest-basic'));
-    expect(await screen.findByText('Dealing damage')).toBeTruthy();
+    await detailReady('Zzztest');
 
     // Dark/Grass takes 2.56x from Wind, which is 1.6 into each half.
-    const crit = screen.getByRole('region', { name: /^2\.56×/ });
-    expect(within(crit).getByText('Wind')).toBeTruthy();
+    expect(spreadBand('2.56×')).toEqual(['wind']);
 
-    // 3. Its move is scored like any other.
-    expect(screen.getByText('Test Bolt')).toBeTruthy();
+    // 3. Its move is scored like any other - listed, and named as its best.
+    expect(screen.getAllByText('Test Bolt')).toHaveLength(2);
   });
 
   /**
@@ -303,7 +330,7 @@ describe('App', () => {
       await waitFor(() => expect(tiles()).toHaveLength(all));
     });
 
-    test('a plain click opens the form in the calculator rather than the page', async () => {
+    test('a plain click opens the form in the app rather than loading its page', async () => {
       const user = userEvent.setup();
       window.location.hash = '#/aniimo';
       render(<App />);
@@ -312,8 +339,10 @@ describe('App', () => {
       await user.click(document.querySelector('a[href$="aniimo/glacy/"]')!);
 
       await waitFor(() => expect(window.location.hash).toBe('#/aniimo/glacy'));
-      expect(await screen.findByText('Taking damage')).toBeTruthy();
-      expect(await screen.findByText('Dealing damage')).toBeTruthy();
+      await detailReady('Glacy');
+      // The same five bands the tile carried, enlarged onto the hero card.
+      expect(spreadBand('1.6×')).toEqual(['grass']);
+      expect(spreadBand('0.39×')).toEqual(['water']);
     });
 
     test('tiles link to the form’s own prerendered page, resolved from the site root', async () => {
@@ -356,11 +385,10 @@ describe('App', () => {
     };
 
     test('opens the route the page stands for, with no hash', async () => {
-      prerender({ view: 'calc', kind: 'aniimo', id: 'glacy' });
+      prerender({ view: 'aniimo', id: 'glacy' });
       render(<App />);
-      await ready();
 
-      expect(await screen.findByRole('heading', { name: 'Glacy' })).toBeTruthy();
+      await detailReady('Glacy');
       expect(window.location.hash).toBe('');
     });
 
@@ -424,9 +452,8 @@ describe('App', () => {
       prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
       window.location.hash = '#/aniimo/emberpup';
       render(<App />);
-      await ready();
 
-      expect(await screen.findByRole('heading', { name: 'Emberpup' })).toBeTruthy();
+      await detailReady('Emberpup');
     });
 
     test('data is fetched from the site root, not the page directory', async () => {
