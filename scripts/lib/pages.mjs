@@ -16,6 +16,7 @@
 import { BANDS, band, formatMultiplier, moveElements, displayName, paths } from './matchups.mjs';
 import { esc, list, elChip, elPlate, roleChip, roleBadge, roleLabel, verdictAttr, crumbs, hero, oneLine } from './html.mjs';
 import { abs, SITE_NAME } from './site.mjs';
+import { graphCard } from './graph.mjs';
 
 const pct = (n) => formatMultiplier(n);
 
@@ -365,6 +366,8 @@ Against a dual-element defender the two multipliers are multiplied, giving <stro
 </div>`)}
 
 <main class="page page--narrow section">
+${graphCard(chart, up, { owned: true })}
+
 <section class="card card--flow" data-app-owns>
 ${matrixTable(chart)}
 </section>
@@ -459,6 +462,8 @@ ${spreadTable(chart, up, [el], `What each attacking element deals to a pure ${el
 ${offenceTable(chart, up, el)}
 </section>
 </div>
+
+${graphCard(chart, up, { active: el })}
 
 ${
   partners.length

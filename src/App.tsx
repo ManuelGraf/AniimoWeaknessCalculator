@@ -10,6 +10,7 @@ import { AniimoDetail } from './components/AniimoDetail';
 import { AniimoGrid } from './components/AniimoGrid';
 import { DefencePanel } from './components/DefencePanel';
 import { ElPlate } from './components/ElementBadge';
+import { ElementGraph } from './components/ElementGraph';
 import { MatrixView } from './components/MatrixView';
 
 export default function App() {
@@ -89,7 +90,14 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
 
       <main className="page page--narrow section">
         {route.view === 'chart' ? (
-          <MatrixView chart={chart} />
+          // The graph is the at-a-glance read, the table under it the exact one.
+          <div className="stack">
+            <ElementGraph
+              chart={chart}
+              onOpen={(el) => navigate({ view: 'calc', kind: 'elements', elements: [el.toLowerCase()] })}
+            />
+            <MatrixView chart={chart} />
+          </div>
         ) : route.view === 'aniimo' ? (
           // Keyed by id so opening another form starts its target picker clean
           // rather than carrying the last one's over.

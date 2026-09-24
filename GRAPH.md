@@ -1,101 +1,76 @@
 # Element relation graph — design note
 
-Not built yet. This records the thinking behind an interactive graph view of the element chart, so
-the decisions do not have to be re-made from scratch.
+Built. The chart page opens on it, above the matrix table, and every element page carries a static
+copy with that element selected. This records why it looks the way it does, so the decisions do not
+have to be re-made when someone wants to nudge it.
 
-The prompt for it is `public/weaknessgraph.jpeg` — a community-made relation graph that got a good
-reception. Note that the file is currently shipped (`dist/weaknessgraph.jpeg`, 64 KB) but referenced
-from nowhere in `src/` or `scripts/`. Either it becomes the layout reference for this work or it
-should be deleted.
-
-## Verdict: worth doing, no dependencies
-
-The data in `public/data/elements.json` is already a directed graph. Rendering it is nine circles,
-nineteen arrows and one special case.
-
-| | count |
+| | |
 | --- | --- |
-| Nodes | 9 |
-| `strongAgainst` edges (1.6×) | 19 |
-| `resistedBy` edges (0.625×) | 27 |
-| …of which self-loops | 8 — every element resists itself except Dark |
-| Bidirectional 1.6× pairs | 1 — Dark ↔ Light |
+| Geometry | `src/lib/graph.ts`, mirrored in `scripts/lib/graph.mjs` |
+| App | `src/components/ElementGraph.tsx` |
+| Static pages | `graphCard()` in `scripts/lib/graph.mjs`, used by `chartPage()` and `elementPage()` |
+| Styles | the "Element relation graph" section at the end of `src/aniimo-site.css` |
+| Tests | `scripts/lib/graph.test.tsx` |
 
-That is inline SVG: `<path>` per edge, a `<marker>` arrowhead per element colour, a `<text>` label at
-each edge midpoint. Ballpark 250 lines of TSX plus 70 lines of CSS, against a current bundle of
-256 KB. A graph library (cytoscape, d3-force, vis) would add 100–300 KB to draw nine circles, and a
-force layout would produce a jittery blob instead of the composed picture that made the reference
-image worth copying.
+## No dependencies
 
-Colours and icons already exist: the `[data-el]` triplets in `src/aniimo-dark.css` and the
-`#el-<name>` symbols in `src/aniimo-icons.svg`.
+Inline SVG for the edges and HTML buttons laid over it for the nodes. A graph library would add
+100–300 KB to draw nine plates, and a force layout would produce a jittery blob instead of a
+composed picture.
 
-## Layout: fixed coordinates, not computed
+## Layout: fixed coordinates, taken from the community chart
 
-The reference image reads well because a human placed the nodes so that edges mostly avoid crossing.
-Hard-code that as a `{element: [x, y]}` map in normalised units — nine literals, trivial to nudge —
-rather than deriving positions at runtime.
+The layout follows the community-made chart by
+[u/88IllusionllI88](https://www.reddit.com/user/88IllusionllI88/), credited on the card itself
+(`public/easy-element-chart-look-v0-mvp1v0pqs9rh1.webp`,
+the updated version of the earlier `public/weaknessgraph.jpeg`): Light at the top, Dark and Wind
+beneath it, a centre column of Lightning, Water, Earth and Fire, Grass and Ice on the wings. It is a
+portrait box (600×800), which also suits a phone better than a landscape one.
 
-Approximate positions read off the reference image:
+The earlier image disagreed with `elements.json` on two edges (Dark → Fire instead of Dark →
+Lightning, Earth → Lightning instead of Earth → Fire). The updated one matches all 19 strong edges.
+`elements.json` stays the source of truth either way: the graph is generated from it, and the image
+is only a layout reference.
 
-```
-            Light (.51,.08)
-     Dark (.34,.29)    Wind (.68,.28)
-Grass (.07,.54)  Fire (.35,.54)  Ice (.68,.54)  Lightning (.92,.54)
-       Water (.33,.92)      Earth (.68,.92)
-```
+**The strong graph is not planar.** A search over free node positions bottoms out at one crossing,
+so none of the layouts is crossing-free. The community chart deals with this by running two arrows
+straight through a node (Wind → Grass through Dark, Water → Fire through Earth). Here those two are
+routed round the node instead (`ROUTES`), which costs one crossing each: Wind → Grass over Dark →
+Lightning, and Water → Fire over Earth → Ice. The test pins that count at two.
 
-The obvious alternative — nine points on a circle, positions derived from `order` — is symmetric and
-self-maintaining, but every edge becomes a chord through the middle and legibility drops sharply.
-
-**Dark ↔ Light** is the one pair needing geometry beyond a straight line: two opposed arrows on the
-same axis. Curve both as quadratic paths with mirrored control-point offsets, or draw a single line
-with an arrowhead at each end. Everything else can be straight.
+Every other strong edge is straight, except Dark ↔ Light, the only pair that hit each other for
+1.6×. Both of those bow to the left of travel, so they separate on their own.
 
 ## Interaction
 
-At rest: the 19 strong edges only.
+At rest the graph shows the 19 strong edges only. Drawing all 27 resists as well would clutter it
+beyond reading.
 
-**Resist edges are the trap.** Nineteen arrows on this layout is already close to the legibility
-ceiling; drawing all 27 resists on top makes a hairball and destroys the exact quality that made the
-reference image worth copying. Show them only for the currently active node, as thin dashed strokes.
-Self-resists are better drawn as a ring around the node than as a loop.
+One highlight state (`active`), three inputs:
 
-**Hover alone is not enough** — no hover on touch, and a dead end for keyboard. Each node should be a
-real `<button>` inside the SVG:
+- a mouse hover previews
+- keyboard focus previews (`:focus-visible` only, so a click's focus does not stick)
+- a click or tap pins; a second click, Escape, or a click on the background unpins
 
-- hover **or** focus → highlight
-- click → pin the selection
-- Escape or background click → clear
+Touch previews are ignored on purpose: an emulated touch hover never ends.
 
-While a node is active, its in-edges and out-edges keep full opacity and show their multiplier label
-(`1.6×` / `0.625×`); everything else drops to roughly 12% opacity. One highlight path, three input
-methods, no branching logic.
+While an element is active, its in-edges and out-edges keep full opacity and everything else fades
+to 12%. Its resists are drawn in as thin dashed curves. Each one picks the bend that clears the most
+nodes, and elements that resist themselves get a dashed ring rather than a loop. Only the 1.6× edges
+carry a label. The dashed stroke already means 0.625×, and nine more pills on the short edges
+around a node would land on its neighbours.
 
-## Two non-obvious costs
+The readout beside the graph states the same thing in words (hits for 1.6×, is resisted by, weak to,
+resists), so the SVG itself is `aria-hidden`. The matrix table below it remains the full data view.
 
-**1. Prerender duplication.** `scripts/lib/pages.mjs` hand-writes the HTML for the React views, the
-same way `scripts/lib/chart.mjs` mirrors `src/lib/chart.ts`. Putting the graph on a prerendered page
-means writing the SVG twice. Three ways out, cheapest last:
+## Prerender
 
-- accept the duplication (it is the established pattern in this repo)
-- put the geometry in one shared plain-JS module that both sides import
-- declare the graph a client-only enhancement sitting next to the existing matrix table — the table
-  already carries the SEO and accessibility weight, so the graph can be `aria-hidden` decoration and
-  skip prerender entirely
+The graph is written twice, like the Aniimo tile: once as a React component, once as a template
+string. The geometry is computed by a pure function, and that function is mirrored too, because the
+scripts do not import from `src/`. The test holds both halves to identical geometry for every
+element and identical markup at rest and with an element selected. The one intended difference is
+that static nodes are links to the element pages and app nodes are toggle buttons.
 
-**2. The reference image disagrees with our data.** Read at that resolution it appears to show an
-arrow from Dark into Fire, and no Earth → Fire; neither matches `elements.json`. The dashed edges
-(Wind–Dark, Grass–Water) encode something undocumented. `elements.json` is hand-verified against
-aniimoguide.com and is the source of truth — generate from it, and treat the image purely as a
-layout reference.
-
-## Open question
-
-Where it lives:
-
-- **third tab** next to Calc / Chart — keeps each page short, costs a navigation step
-- **on the chart page**, above the matrix table — graph as the at-a-glance view, table directly below
-  as the precise one, no navigation; makes that page long
-
-Undecided.
+- `/chart/`: the static copy is `data-app-owns` and the interactive one replaces it on boot.
+- `/element/<el>/`: the static copy stays, drawn with that element active. Crawlers get nine
+  internal links out of it.

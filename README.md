@@ -65,7 +65,13 @@ whether or not anything falls in them.
 Filter by name, by role, or by up to two elements at once — two elements means *both*, which is how
 you find an exact dual pairing. Clicking a tile opens that form's own page.
 
-**Full chart** — the raw 9×9 grid, rows attack and columns defend.
+**Full chart** — every 1.6× matchup drawn as arrows from attacker to defender, and the raw 9×9 grid
+under it, rows attack and columns defend. Hovering, focusing or tapping an element in the graph lights
+up its own arrows, draws in the resists (dashed) for that element only, and lists what it beats, what
+beats it and what it resists beside the graph; a tap pins it, Escape or a click on the background lets
+go. The layout follows the community chart by
+[u/88IllusionllI88](https://www.reddit.com/user/88IllusionllI88/); see [GRAPH.md](GRAPH.md) for why it is
+placed by hand.
 
 State lives in the URL hash (`#/aniimo`, `#/aniimo/glacy`, `#/defense/water+ice`, `#/chart`), so any
 result can be linked. A hash is used rather than paths because GitHub Pages serves no SPA fallback.
@@ -172,7 +178,7 @@ aniimoguide. Every entry has both, and the test suite asserts they are still ima
 npm test
 ```
 
-Six suites, no fixtures — they run against the real committed data:
+Seven suites, no fixtures — they run against the real committed data:
 
 - `src/lib/chart.test.ts` — matchup maths, including a 729-case check that dual-element order never
   changes the result, and aniimoguide's two published examples.
@@ -188,6 +194,10 @@ Six suites, no fixtures — they run against the real committed data:
   This renders the same form through both and compares the tag structure and every class and `data-`
   hook the stylesheet reads. Both cross-boundary suites live under `scripts/` because they reach into
   the plain-JS half of the build, which `tsconfig.json` deliberately leaves out.
+- `scripts/lib/graph.test.tsx` — the element graph is also written twice. This holds both halves to
+  the same geometry for every element and the same markup at rest and with an element selected, and
+  checks the hand-placed layout: every strong matchup drawn, no arrow through a node it does not
+  touch, no more than the two crossings the layout has, and the pin / unpin / Escape behaviour.
 
 ## Static pages
 
@@ -199,8 +209,9 @@ every lookup the tool supports:
 
 ```
 /                          calculator, the 9x9 chart, every element at a glance
-/chart/                    the full grid, plus every matchup written out in prose
-/element/fire/             ×9   weak to / resists / strong against, and every Fire Aniimo
+/chart/                    the relation graph, the full grid, and every matchup in prose
+/element/fire/             ×9   weak to / resists / strong against, the graph with Fire selected,
+                                and every Fire Aniimo
 /element/fire-earth/       ×36  dual pairings (the 9 no Aniimo has are noindex)
 /aniimo/                   every form as a tile, and every form's weakness in one table
 /aniimo/glacy/             ×226 matchup table, move coverage, stats, habitats
@@ -278,8 +289,9 @@ src/
   aniimo-icons.svg    element and role glyphs, inlined into every page
   lib/chart.ts        matchup maths (no React, no DOM)
   lib/data.ts         loading, search ranking
+  lib/graph.ts        the element graph's layout and geometry (no React, no DOM)
   lib/useHashRoute.ts URL state
-  components/         combobox, roster grid, one Aniimo's page, defence, chart
+  components/         combobox, roster grid, one Aniimo's page, defence, chart, element graph
 scripts/
   sync.mjs            orchestrates a refresh, validates, writes
   lib/wiki.mjs        official wiki  (Nuxt payloads)
@@ -291,6 +303,8 @@ scripts/
   lib/site.mjs        where the site lives (the only place a URL is written)
   lib/matchups.mjs    matchup maths in plain JS, mirrored from src/lib/chart.ts
   lib/tile.test.tsx   holds the two Aniimo tile renderers to the same markup
+  lib/graph.mjs       the element graph for the static pages, mirrored from src/lib/graph.ts
+  lib/graph.test.tsx  holds the two graph renderers to the same geometry and markup
   lib/html.mjs        page shell: head tags, structured data, chrome, icon sprite
   lib/pages.mjs       the body of each kind of page
 public/data/          the generated database
@@ -326,7 +340,7 @@ Two mechanisms carry all the colour, and neither writes a hex into markup:
 The element palette lives in `aniimo-dark.css` section 2. `public/data/elements.json` carries the
 same nine values for the few places CSS cannot reach; change one, change the other.
 
-The Aniimo tile is the one piece of markup written twice — `<Tile>` in
+The Aniimo tile is one of two pieces of markup written twice — `<Tile>` in
 [`src/components/AniimoGrid.tsx`](src/components/AniimoGrid.tsx) and `aniimoTile()` in
 [`scripts/lib/pages.mjs`](scripts/lib/pages.mjs) — because the app's version replaces the static one
 in place on `/aniimo/`. Same classes, same nesting, same order, one `.tile` block styling both. The
@@ -336,6 +350,14 @@ output — `BANDS` included, since a tile prints a band's `label` as a column he
 side rendered it. The markup itself is held together by
 [`scripts/lib/tile.test.tsx`](scripts/lib/tile.test.tsx), which renders both and diffs the
 structure.
+
+The element graph is the other: `<ElementGraph>` in
+[`src/components/ElementGraph.tsx`](src/components/ElementGraph.tsx) and `graphCard()` in
+[`scripts/lib/graph.mjs`](scripts/lib/graph.mjs), with the layout and path geometry mirrored between
+`src/lib/graph.ts` and that same file. The app's copy replaces the static one on `/chart/`; on an
+element page the static copy stays, drawn with that element selected, and its nodes link to the
+other element pages. [`scripts/lib/graph.test.tsx`](scripts/lib/graph.test.tsx) holds the two to the
+same geometry for every element and diffs the markup the same way the tile test does.
 
 ## Caveats
 
