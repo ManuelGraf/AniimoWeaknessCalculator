@@ -262,15 +262,17 @@ function Header({ meta, view, onView }: { meta: Database['meta']; view: View; on
   const brand = (
     <>
       <span className="brand__mark">
-        <img src={`${up}logo.svg`} alt="" width={23} height={23} />
+        <img src={`${up}logo-mark.svg`} alt="" width={40} height={40} />
       </span>
       {/*
-        The explicit space is a flex child that flex layout ignores, but it
-        keeps the accessible name and anything copied off the page reading
-        "Aniimo Weakness Calculator" rather than running the two lines together.
+        The wordmark image is decorative; the name it draws is carried by the
+        sr-only span so the accessible name and anything copied off the page
+        still read "Aniimo Weakness Calculator". The explicit space is a flex
+        child that flex layout ignores but keeps the two words apart.
       */}
       <span className="brand__text">
-        <span className="brand__name">Aniimo</span>{' '}
+        <img className="brand__wordmark" src={`${up}aniimo-wordmark.png`} alt="" width={63} height={20} />
+        <span className="brand__name sr-only">Aniimo</span>{' '}
         <span className="brand__sub">Weakness Calculator</span>
       </span>
     </>

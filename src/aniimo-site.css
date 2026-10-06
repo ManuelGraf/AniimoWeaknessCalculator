@@ -21,10 +21,8 @@
 
 /* On the plain calculator the site name is the page's h1; on a prerendered
    page it steps down to a link home. Either way it is brand chrome, not a
-   headline, so it does not take h1 sizing. "Aniimo" is uppercased here rather
-   than in markup so the accessible name and any copied text stay readable. */
+   headline, so it does not take h1 sizing. */
 h1.brand { font-size: inherit; font-weight: inherit; letter-spacing: normal; margin: 0; }
-.brand__name { text-transform: uppercase; }
 
 /* A panel heading is a label on a card, not a section headline. */
 .card__head h2 { font-size: 17px; margin: 0; }
@@ -643,7 +641,6 @@ body { position: relative; }
   .status-chip { display: none; }
   .view-toggle button { padding-inline: 10px; font-size: 13px; }
   .brand { min-width: 0; }
-  .brand__name { font-size: 15px; letter-spacing: 0.1em; }
 }
 
 /* ==========================================================================

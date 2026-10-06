@@ -239,8 +239,8 @@ ${withCanonical ? `<meta property="og:url" content="${esc(canonical)}">
 <meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
-${imageTags}<link rel="icon" href="${up}logo-mono.svg">
-<link rel="apple-touch-icon" href="${up}logo.svg">
+${imageTags}<link rel="icon" href="${up}favicon.svg">
+<link rel="apple-touch-icon" href="${up}favicon.svg">
 ${FONTS}
 ${ld.join('\n')}
 <script>window.__SITE_ROOT__=${JSON.stringify(up)};window.__ROUTE__=${JSON.stringify(route ?? null)};</script>
@@ -283,9 +283,10 @@ export const header = (up, meta, current = null) => {
 
   return `<header class="site-header" data-app-owns>
 <a class="brand" href="${up}">
-<span class="brand__mark"><img src="${up}logo.svg" alt="" width="23" height="23"></span>
+<span class="brand__mark"><img src="${up}logo-mark.svg" alt="" width="40" height="40"></span>
 <span class="brand__text">
-<span class="brand__name">Aniimo</span>
+<img class="brand__wordmark" src="${up}aniimo-wordmark.png" alt="" width="63" height="20">
+<span class="brand__name sr-only">Aniimo</span>
 <span class="brand__sub">Weakness Calculator</span>
 </span>
 </a>

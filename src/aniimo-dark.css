@@ -215,23 +215,24 @@ a:hover { color: #A9F3E1; text-decoration: underline; }
 
 .brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
 .brand:hover { text-decoration: none; }
-.brand__mark {
-  width: 40px; height: 40px; border-radius: var(--r-md);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  background: linear-gradient(150deg,
-              rgba(255,158,107,0.20), rgba(111,231,204,0.20) 52%, rgba(183,156,255,0.22));
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 0 26px -6px rgba(var(--accent-rgb) / 0.75);
+/* The crit in a dark glass hex (public/logo-mark.svg), with the nine element
+   tints in chart order blurred into a halo behind it. */
+.brand__mark { position: relative; width: 40px; height: 40px; flex-shrink: 0; display: block; }
+.brand__mark::before {
+  content: ""; position: absolute; inset: 4px; border-radius: var(--r-pill);
+  background: conic-gradient(from 200deg, #FF7A45, #FFC93C, #FFE9A0, #62D66A, #7BE8C4,
+                                          #8FD8F0, #4F9BFF, #B79CFF, #D9A26B, #FF7A45);
+  filter: blur(11px); opacity: 0.9;
 }
-.brand__mark svg { width: 23px; height: 23px; display: block; }
-.brand__text { display: flex; flex-direction: column; line-height: 1.1; }
-.brand__name {
-  font-family: var(--font-display); font-weight: 700; font-size: 16px;
-  letter-spacing: 0.14em; color: var(--text-strong);
-}
+.brand__mark img { position: relative; width: 100%; height: 100%; display: block; }
+.brand__text { display: flex; align-items: center; gap: 10px; }
+.brand__wordmark { display: block; height: 20px; width: auto; }
 .brand__sub {
-  font-size: 11px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--text-mute);
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display); font-weight: 600; font-size: 12px;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); white-space: nowrap;
 }
+.brand__sub::before { content: ""; width: 1px; height: 14px; background: var(--line-strong); }
 
 .nav { display: flex; align-items: center; gap: 4px; }
 .nav a {
