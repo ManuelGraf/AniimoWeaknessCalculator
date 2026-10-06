@@ -189,6 +189,8 @@ export function renderPage({
   ogImage = null,
   // Ownership tags lifted from index.html; see verificationTagsFrom().
   verification = [],
+  // Google Analytics snippet lifted from index.html; see analyticsTagFrom().
+  analytics = '',
   // 404.html is served for any unknown path at any depth, so it cannot use a
   // relative prefix; it passes an absolute one and drops its canonical.
   up: upOverride,
@@ -223,7 +225,7 @@ export function renderPage({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${ownership}<title>${esc(title)}</title>
+${ownership}${analytics}<title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
 ${withCanonical ? `<link rel="canonical" href="${esc(canonical)}">
 ` : ''}<meta name="robots" content="${robots}">

@@ -78,6 +78,21 @@ function verificationTagsFrom(html) {
   return tags;
 }
 
+/**
+ * Carry the Google Analytics tag over from index.html, for the same reason as
+ * the ownership tags above: the head is replaced, so a gtag snippet pasted
+ * there would otherwise never ship. Only the measurement ID is read; the
+ * snippet is rebuilt so every page gets the canonical form. Returns '' when
+ * index.html has no tag.
+ */
+function analyticsTagFrom(html) {
+  const id = html.match(/googletagmanager\.com\/gtag\/js\?id=([A-Z0-9-]+)/)?.[1];
+  if (!id) return '';
+  return `<script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${id}');</script>
+`;
+}
+
 async function main() {
   const started = Date.now();
 
@@ -89,6 +104,8 @@ async function main() {
   if (verification.length) {
     console.log(`  carrying over ${verification.length} site-verification tag(s) from index.html`);
   }
+  const analytics = analyticsTagFrom(shell);
+  if (analytics) console.log('  carrying over the Google Analytics tag from index.html');
 
   const [chartData, roster, meta] = await Promise.all([
     readFile(path.join(DATA, 'elements.json'), 'utf8').then(JSON.parse),
@@ -115,6 +132,7 @@ async function main() {
       assets,
       ogImage: img === undefined ? ogImage : img,
       verification,
+      analytics,
       jsonLd: page.jsonLd,
       body: `${header(up, meta, nav)}\n${page.body}\n${footer(up, meta)}`,
     });
@@ -243,6 +261,7 @@ async function main() {
     noindex: true,
     assets,
     verification,
+    analytics,
     route: null,
     jsonLd: [],
     body: `${header(root, meta)}\n${notFoundPage({ up: root }).body}\n${footer(root, meta)}`,

@@ -27,7 +27,9 @@
       So editing a tag here does NOT change what ships - with one exception:
       search-engine ownership tags (google-site-verification, msvalidate.01
       and friends) are copied onto every generated page. Paste the one Search
-      Console or Bing gives you above and rebuild.
+      Console or Bing gives you above and rebuild. The Google Analytics
+      gtag snippet above is carried over too (its measurement ID is read and
+      the snippet rebuilt on every page).
 
       The font links are duplicated in scripts/lib/html.mjs. Change one, change
       the other, or the dev shell and the deployed pages set different type.
