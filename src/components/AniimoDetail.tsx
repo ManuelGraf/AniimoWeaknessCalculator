@@ -20,7 +20,7 @@ import { useMemo, useState } from 'react';
 import { formatMultiplier, verdict, type Chart, type Extreme, type Verdict } from '../lib/chart';
 import { list } from '../lib/data';
 import type { Aniimo, Element, Skill } from '../types';
-import { ElChip, ElPlate, Icon, ROLE_GLYPH, RoleChip, roleLabel } from './ElementBadge';
+import { BandArrows, ElChip, ElPlate, Icon, ROLE_GLYPH, RoleChip, roleLabel } from './ElementBadge';
 
 /** Same-element attack bonus: a move sharing one of its user's elements hits 10% harder. */
 export const STAB = 1.1;
@@ -224,7 +224,10 @@ export function AniimoDetail({ chart, aniimo, siteRoot, onRoster }: Props) {
           <div className="hero-spread" aria-hidden="true">
             {bands.map(({ band: b, entries }) => (
               <div key={b.key} className="tile__band hero-spread__band" data-verdict={verdict(b.mult)}>
-                <span className="tile__bandMult">{b.label}</span>
+                <span className="tile__bandMult">
+                  <BandArrows arrows={b.arrows} />
+                  {b.label}
+                </span>
                 <span className="tile__bandEls">
                   {entries.length ? (
                     entries.map((e) => <ElPlate key={e.element} element={e.element} size="xs" />)

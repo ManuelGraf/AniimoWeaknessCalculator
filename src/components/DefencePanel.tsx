@@ -1,6 +1,6 @@
 import { formatMultiplier, verdict, type Chart } from '../lib/chart';
 import type { Element } from '../types';
-import { ElChip } from './ElementBadge';
+import { BandArrows, ElChip } from './ElementBadge';
 
 /**
  * Incoming damage, grouped by how hard it lands.
@@ -24,7 +24,10 @@ export function DefencePanel({ chart, defenders }: { chart: Chart; defenders: El
           data-verdict={verdict(entries[0]!.multiplier)}
         >
           <div>
-            <div className="band__mult">{b.label}</div>
+            <div className="band__mult">
+              <BandArrows arrows={b.arrows} />
+              {b.label}
+            </div>
             <div className="band__blurb">{b.blurb}</div>
           </div>
           <div className="band__items">

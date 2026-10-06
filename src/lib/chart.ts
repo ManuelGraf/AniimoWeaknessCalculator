@@ -184,18 +184,42 @@ export interface Band {
    * five columns are drawn whether or not anything landed in them.
    */
   mult: number;
+  /**
+   * The band as a glyph, one triangle per side that lands: positive for more
+   * damage taken (drawn pointing down - bad for the defender), negative for
+   * less (pointing up), 0 for the neutral dash. Where space is tight -
+   * the tile's spread bar - this stands in for `label`.
+   */
+  arrows: 2 | 1 | 0 | -1 | -2;
   label: string;
   /** Short read of what the number means, used as the group heading. */
   blurb: string;
 }
 
 export const BANDS: Band[] = [
-  { min: 2.5, key: 'x256', mult: 2.56, label: '2.56×', blurb: 'Hits both halves' },
-  { min: 1.5, key: 'x16', mult: 1.6, label: '1.6×', blurb: 'Super effective' },
-  { min: 0.99, key: 'x1', mult: 1, label: '1×', blurb: 'Neutral' },
-  { min: 0.6, key: 'x0625', mult: 0.625, label: '0.625×', blurb: 'Resisted' },
-  { min: 0, key: 'x039', mult: 0.390625, label: '0.39×', blurb: 'Resisted twice' },
+  { min: 2.5, key: 'x256', mult: 2.56, arrows: 2, label: '2.56×', blurb: 'Hits both halves' },
+  { min: 1.5, key: 'x16', mult: 1.6, arrows: 1, label: '1.6×', blurb: 'Super effective' },
+  { min: 0.99, key: 'x1', mult: 1, arrows: 0, label: '1×', blurb: 'Neutral' },
+  { min: 0.6, key: 'x0625', mult: 0.625, arrows: -1, label: '0.625×', blurb: 'Resisted' },
+  { min: 0, key: 'x039', mult: 0.390625, arrows: -2, label: '0.39×', blurb: 'Resisted twice' },
 ];
+
+/**
+ * Geometry for a band's glyph, filled on a 14-unit-tall box: one 8-wide
+ * triangle, a second 9 units along for a double, and a short bar for neutral.
+ * Weaknesses point down and resistances up, so the direction reads as good
+ * or bad for the defender alongside the colour. Mirrored by arrowGlyph() in scripts/lib/html.mjs.
+ */
+export function arrowPath(arrows: number): { width: number; d: string } {
+  if (arrows === 0) return { width: 8, d: 'M1 6h6v2H1z' };
+  const n = Math.abs(arrows);
+  const down = arrows > 0;
+  const d = Array.from({ length: n }, (_, i) => {
+    const x = i * 9;
+    return down ? `M${x} 3h8l-4 8z` : `M${x} 11h8l-4-8z`;
+  }).join('');
+  return { width: 8 + (n - 1) * 9, d };
+}
 
 export function band(multiplier: number): Band {
   const m = round(multiplier);

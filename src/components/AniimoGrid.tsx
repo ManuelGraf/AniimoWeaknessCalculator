@@ -19,7 +19,7 @@ import { useMemo, useState } from 'react';
 import { BANDS, formatMultiplier, verdict, type Chart, type Extreme } from '../lib/chart';
 import { displayName, list } from '../lib/data';
 import type { Aniimo, Element } from '../types';
-import { ElPlate, Icon, ROLE_GLYPH, roleLabel } from './ElementBadge';
+import { BandArrows, ElPlate, Icon, ROLE_GLYPH, roleLabel } from './ElementBadge';
 
 interface Props {
   chart: Chart;
@@ -176,7 +176,7 @@ function TileLegend() {
       <span>Each tile’s bar reads left to right, most damage taken to least:</span>
       {BANDS.map((b) => (
         <span key={b.key} data-verdict={verdict(b.mult)}>
-          <b>{b.label}</b> {b.blurb.toLowerCase()}
+          <b><BandArrows arrows={b.arrows} />{b.label}</b> {b.blurb.toLowerCase()}
         </span>
       ))}
     </p>
@@ -233,8 +233,13 @@ function Tile({
 
       <span className="tile__spread" aria-hidden="true">
         {bands.map(({ band: b, entries }) => (
-          <span key={b.key} className="tile__band" data-verdict={verdict(b.mult)}>
-            <span className="tile__bandMult">{b.label}</span>
+          <span key={b.key} className="tile__band" data-verdict={verdict(b.mult)} title={`${b.label} ${b.blurb.toLowerCase()}`}>
+            {/* Arrows only: five numbers per tile was the busiest thing on
+                the page. The legend above the grid maps them back. */}
+            <span className="tile__bandMult">
+              <BandArrows arrows={b.arrows} />
+              <span className="sr-only">{b.label}</span>
+            </span>
             <span className="tile__bandEls">
               {entries.length ? (
                 entries.map((e) => <ElPlate key={e.element} element={e.element} size="xxs" />)

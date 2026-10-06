@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { createChart, round, band, formatMultiplier } from './chart';
+import { createChart, round, band, formatMultiplier, arrowPath, BANDS } from './chart';
 import type { ChartData, Element } from '../types';
 
 const data: ChartData = JSON.parse(
@@ -169,5 +169,25 @@ describe('presentation helpers', () => {
     expect(formatMultiplier(1.6 * 1.6)).toBe('2.56×');
     expect(formatMultiplier(1)).toBe('1×');
     expect(formatMultiplier(0.625 * 0.625)).toBe('0.391×');
+  });
+});
+
+describe('band arrows', () => {
+  test('one triangle per side that lands: weaknesses point down, resistances up', () => {
+    expect(BANDS.map((b) => b.arrows)).toEqual([2, 1, 0, -1, -2]);
+    expect(arrowPath(1)).toEqual({ width: 8, d: 'M0 3h8l-4 8z' });
+    expect(arrowPath(2)).toEqual({ width: 17, d: 'M0 3h8l-4 8zM9 3h8l-4 8z' });
+    expect(arrowPath(-1)).toEqual({ width: 8, d: 'M0 11h8l-4-8z' });
+    expect(arrowPath(0).d).toBe('M1 6h6v2H1z');
+  });
+
+  test('the prerender draws the same glyph as the app', async () => {
+    // @ts-expect-error - plain .mjs, no types
+    const { arrowGlyph } = await import('../../scripts/lib/html.mjs');
+    for (const n of [2, 1, 0, -1, -2]) {
+      const { width, d } = arrowPath(n);
+      expect(arrowGlyph(n)).toContain(`viewBox="0 0 ${width} 14"`);
+      expect(arrowGlyph(n)).toContain(`d="${d}"`);
+    }
   });
 });

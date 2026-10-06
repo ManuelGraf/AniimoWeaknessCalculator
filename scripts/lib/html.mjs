@@ -109,6 +109,26 @@ export const elChip = (el, href) => {
     : `<span class="el-chip" data-el="${slug(el)}">${body}</span>`;
 };
 
+/**
+ * A damage band as triangles - down for more damage taken, up for less,
+ * doubled when both sides land, a bar for neutral. Static twin of <BandArrows> in
+ * src/components/ElementBadge.tsx; the geometry is arrowPath() in
+ * src/lib/chart.ts and the two have to be edited together.
+ */
+export function arrowGlyph(arrows) {
+  let width = 8;
+  let d = 'M1 6h6v2H1z';
+  if (arrows !== 0) {
+    const n = Math.abs(arrows);
+    width = 8 + (n - 1) * 9;
+    d = Array.from({ length: n }, (_, i) => {
+      const x = i * 9;
+      return arrows > 0 ? `M${x} 3h8l-4 8z` : `M${x} 11h8l-4-8z`;
+    }).join('');
+  }
+  return `<svg class="band-arrows" aria-hidden="true" viewBox="0 0 ${width} 14" style="width:${width / 14}em" fill="currentColor"><path d="${d}"></path></svg>`;
+}
+
 /** The square icon plate. `size` is one of xs, sm, md, lg. */
 export const elPlate = (el, size = 'md') =>
   `<span class="el-plate el-plate--${size}" data-el="${slug(el)}">${glyph(`el-${slug(el)}`)}</span>`;

@@ -329,6 +329,7 @@ body { position: relative; }
   border-left-color: var(--text-faint);
 }
 .band__mult {
+  display: flex; align-items: center; gap: 8px;
   font-family: var(--font-display); font-size: 21px; font-weight: 700;
   line-height: 1; color: var(--v-text); font-variant-numeric: tabular-nums;
 }
@@ -532,9 +533,14 @@ body { position: relative; }
 [data-verdict="flat"].tile__band { background: rgba(255, 255, 255, 0.035); }
 
 .tile__bandMult {
-  font-family: var(--font-display); font-size: 8.5px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-display); font-size: 12px; font-weight: 700;
   line-height: 1; color: var(--v-text); font-variant-numeric: tabular-nums;
 }
+
+/* The band glyph. Height follows the text it sits in; width is set inline from
+   the arrow count so a double never squashes into a single's box. */
+.band-arrows { display: block; flex: none; height: 1em; overflow: visible; }
 .tile__bandEls { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
 .tile__bandNone { font-size: 12px; line-height: 15px; color: var(--text-faint); }
 
@@ -550,6 +556,7 @@ body { position: relative; }
   margin: 0; font-size: 12px; color: var(--text-mute);
 }
 .tile-legend b {
+  display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--font-display); font-weight: 700; color: var(--v-text);
   font-variant-numeric: tabular-nums;
 }
@@ -757,7 +764,10 @@ body { position: relative; }
 }
 .hero-spread { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .hero-spread__band { padding: 9px 4px 10px; gap: 8px; border-radius: 12px; }
-.hero-spread__band .tile__bandMult { font-size: 13px; }
+/* Arrows over the number: side by side, "0.625×" plus a double arrow does not
+   fit a fifth of a phone. */
+.hero-spread__band .tile__bandMult { flex-direction: column; gap: 4px; font-size: 13px; }
+.hero-spread__band .band-arrows { height: 15px; }
 .hero-spread__band .tile__bandEls { gap: 4px; }
 .hero-spread__band .tile__bandNone { line-height: 30px; }
 

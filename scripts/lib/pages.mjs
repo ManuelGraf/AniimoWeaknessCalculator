@@ -14,7 +14,7 @@
  * src/aniimo-dark.css.
  */
 import { BANDS, band, formatMultiplier, moveElements, displayName, paths } from './matchups.mjs';
-import { esc, list, elChip, elPlate, roleChip, roleBadge, roleLabel, verdictAttr, crumbs, hero, oneLine } from './html.mjs';
+import { esc, list, arrowGlyph, elChip, elPlate, roleChip, roleBadge, roleLabel, verdictAttr, crumbs, hero, oneLine } from './html.mjs';
 import { abs, SITE_NAME } from './site.mjs';
 import { graphCard } from './graph.mjs';
 
@@ -155,8 +155,8 @@ const rosterList = (up, aniimo) =>
 export function aniimoTile(chart, up, a) {
   const src = a.head ?? a.image;
 
-  const column = ({ band: b, entries }) => `<span class="tile__band"${verdictAttr(b.mult)}>
-<span class="tile__bandMult">${esc(b.label)}</span>
+  const column = ({ band: b, entries }) => `<span class="tile__band"${verdictAttr(b.mult)} title="${esc(`${b.label} ${b.blurb.toLowerCase()}`)}">
+<span class="tile__bandMult">${arrowGlyph(b.arrows)}<span class="sr-only">${esc(b.label)}</span></span>
 <span class="tile__bandEls">${
     entries.length
       ? entries.map((e) => elPlate(e.element, 'xxs')).join('')
@@ -190,7 +190,7 @@ ${a.number ? `<span class="tile__no">No. ${esc(a.number)}</span>` : ''}
  */
 const tileLegend = () => `<p class="tile-legend">
 <span>Each tile's bar reads left to right, most damage taken to least:</span>
-${BANDS.map((b) => `<span${verdictAttr(b.mult)}><b>${esc(b.label)}</b> ${esc(b.blurb.toLowerCase())}</span>`).join('')}
+${BANDS.map((b) => `<span${verdictAttr(b.mult)}><b>${arrowGlyph(b.arrows)}${esc(b.label)}</b> ${esc(b.blurb.toLowerCase())}</span>`).join('')}
 </p>`;
 
 /**

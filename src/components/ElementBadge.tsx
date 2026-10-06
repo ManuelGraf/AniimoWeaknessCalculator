@@ -7,6 +7,7 @@
  * same markup shapes are emitted by scripts/lib/html.mjs for the prerendered
  * pages, so the static page and the app paint identically.
  */
+import { arrowPath } from '../lib/chart';
 import type { Element } from '../types';
 
 const slug = (s: string) => s.toLowerCase();
@@ -91,5 +92,26 @@ export function RoleChip({ role }: { role: string }) {
       </span>
       {label}
     </span>
+  );
+}
+
+/**
+ * A damage band as triangles: one or two pointing down for more damage taken,
+ * one or two up for less, a bar for neutral. Coloured by the surrounding
+ * data-verdict through currentColor. Mirrored by arrowGlyph() in
+ * scripts/lib/html.mjs.
+ */
+export function BandArrows({ arrows }: { arrows: number }) {
+  const { width, d } = arrowPath(arrows);
+  return (
+    <svg
+      className="band-arrows"
+      aria-hidden="true"
+      viewBox={`0 0 ${width} 14`}
+      style={{ width: `${width / 14}em` }}
+      fill="currentColor"
+    >
+      <path d={d} />
+    </svg>
   );
 }
