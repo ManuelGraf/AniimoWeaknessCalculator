@@ -395,7 +395,7 @@ describe('App', () => {
       await waitFor(() => expect(document.querySelectorAll('a.tile').length).toBeGreaterThan(0));
 
       // The static page brings its own headline, so the app does not add one.
-      expect(screen.queryByText(/All \d+ Aniimo and their weaknesses/)).toBeNull();
+      expect(screen.queryByText(/All \d+ Aniimo type weaknesses & resistances/)).toBeNull();
       expect(window.location.hash).toBe('');
     });
 

@@ -126,7 +126,7 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
             */}
             {!isPrerendered() && (
               <div>
-                <h2 className="roster-title">All {db.meta.counts.forms} Aniimo and their weaknesses</h2>
+                <h2 className="roster-title">All {db.meta.counts.forms} Aniimo type weaknesses &amp; resistances</h2>
                 <p className="muted">
                   Every form in the game, each with its whole defensive spread on it. Open one to
                   score its own moves.

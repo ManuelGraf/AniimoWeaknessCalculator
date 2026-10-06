@@ -172,7 +172,7 @@ async function main() {
 
   await emit({
     rel: paths.roster,
-    title: `All ${meta.counts.forms} Aniimo and Their Weaknesses`,
+    title: `All ${meta.counts.forms} Aniimo Type Weaknesses & Resistances`,
     description:
       `Every Aniimo form with its elements, roles and weaknesses in one table — ` +
       `what deals each of the ${meta.counts.forms} forms the most damage, and what it resists.`,

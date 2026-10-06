@@ -257,7 +257,7 @@ export function homePage({ chart, roster, meta, up }) {
     },
   ]);
 
-  const body = `${hero(`<h1>Aniimo type effectiveness chart and weakness calculator</h1>
+  const body = `${hero(`<h1>Aniimo type effectiveness and weakness calculator</h1>
 <p class="lede">Pick an element pairing, or search any of the ${meta.counts.forms} Aniimo forms, and see exactly
 what hits it hardest — and what its own moves can hit back.</p>
 
@@ -298,7 +298,7 @@ ${matrixTable(chart)}
     .map(([a, b]) => `<li><a href="${up}${paths.dual(chart.order, a, b)}">${esc(a)} / ${esc(b)}</a></li>`)
     .join('')}</ul>
 <h3>Or a specific Aniimo</h3>
-<p><a class="btn btn--primary" href="${up}aniimo/">All ${meta.counts.forms} Aniimo and their weaknesses</a></p>
+<p><a class="btn btn--primary" href="${up}aniimo/">All ${meta.counts.forms} Aniimo type weaknesses &amp; resistances</a></p>
 <p class="muted">Every form as a tile, including regional and Prismana variants, with what deals it the most
 damage and what it resists.</p>
 </section>
@@ -848,7 +848,7 @@ export function rosterPage({ chart, roster, meta, up }) {
   ]);
 
   const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: 'All Aniimo' }])}
-<h1>All ${meta.counts.forms} Aniimo and their weaknesses</h1>
+<h1>All ${meta.counts.forms} Aniimo type weaknesses &amp; resistances</h1>
 <p class="lede">Every Aniimo form in the game, including regional and Prismana variants, with what deals it
 the most damage and what it resists. Open one for its full matchup table and what its own moves can hit.</p>
 
