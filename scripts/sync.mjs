@@ -63,7 +63,8 @@ async function main() {
   }
 
   const roster = mergeRosters(wikiForms, guideForms);
-  const { errors, warnings } = validate(roster, chart);
+  const previous = await readFile(path.join(DATA, 'aniimo.json'), 'utf8').then(JSON.parse, () => []);
+  const { errors, warnings } = validate(roster, chart, previous);
 
   // Confirm our committed chart still matches what the sources publish.
   const chartCheck = await verifyChart(client, chart);
@@ -86,6 +87,11 @@ async function main() {
     console.log(`\n${plural(warnings.length, 'warning')}:`);
     for (const w of warnings.slice(0, 12)) console.log(`  - ${w}`);
     if (warnings.length > 12) console.log(`  ... and ${warnings.length - 12} more`);
+    // One annotation on the run page, so a refresh that shipped with gaps is
+    // noticed without reading the log.
+    if (process.env.GITHUB_ACTIONS) {
+      console.log(`::warning title=Data sync::${plural(warnings.length, 'warning')}, e.g. ${warnings[0]}`);
+    }
   }
 
   if (errors.length) {

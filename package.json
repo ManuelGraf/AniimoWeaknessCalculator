@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "sync": "node scripts/sync.mjs",
     "sync:wiki": "node scripts/sync.mjs --wiki-only",
-    "sync:check": "node scripts/sync.mjs --dry-run --no-cache"
+    "sync:check": "node scripts/sync.mjs --dry-run --no-cache",
+    "fixtures": "node -e \"for (const f of ['aniimo.json','meta.json']) require('fs').copyFileSync('public/data/'+f,'test/fixtures/'+f)\""
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.3",

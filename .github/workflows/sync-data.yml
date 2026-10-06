@@ -30,12 +30,15 @@ jobs:
 
       - run: npm ci
 
-      # sync exits non-zero if the sources drift in a way it cannot validate,
-      # which fails the job rather than committing bad data.
+      # sync exits non-zero only if the weakness data itself is unusable (forms
+      # with no or unknown elements, a roster that shrank, chart drift). Gaps in
+      # moves or artwork are warnings and still ship.
       - name: Scrape sources
         run: npm run ${{ inputs.wikiOnly && 'sync:wiki' || 'sync' }}
 
-      - name: Verify the app still passes against the new data
+      # Tests read a frozen snapshot (test/fixtures), so this checks the code,
+      # not whatever the sources returned today.
+      - name: Verify the app still builds and passes
         run: npm test
 
       - name: Commit if anything changed

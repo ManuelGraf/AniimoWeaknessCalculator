@@ -7,14 +7,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dataFile } from '../test/data';
 
 import App from './App';
 
-// Resolved from the project root: in a browser-like environment import.meta.url
-// is not a file:// URL.
-const file = (name: string) => readFileSync(resolve(process.cwd(), 'public/data', name), 'utf8');
+const file = dataFile;
 
 beforeEach(() => {
   window.location.hash = '';

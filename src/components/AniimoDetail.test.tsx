@@ -4,19 +4,18 @@
  * Effective power is the one number on the detail page that is not read
  * straight out of the database - it is base power x STAB x effectiveness, and
  * it is what orders the list and decides which move wears the "Best" chip. So
- * it is worked out here against real entries from public/data, with the sums
+ * it is worked out here against real entries from a snapshot of public/data, with the sums
  * written out, rather than through the rendered card.
  */
 import { describe, expect, test } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dataFile } from '../../test/data';
 
 import { createChart } from '../lib/chart';
 import type { Aniimo, ChartData, Element } from '../types';
 import { STAB, scoreMoves } from './AniimoDetail';
 
 const read = <T,>(name: string): T =>
-  JSON.parse(readFileSync(resolve(process.cwd(), 'public/data', name), 'utf8')) as T;
+  JSON.parse(dataFile(name)) as T;
 
 const chart = createChart(read<ChartData>('elements.json'));
 const roster = read<Aniimo[]>('aniimo.json');

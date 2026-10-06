@@ -1,17 +1,17 @@
 /**
- * Runs against the committed public/data/aniimo.json rather than a fixture, so
- * a bad `npm run sync` fails here instead of in the browser.
+ * Runs against a snapshot of the scraped roster (test/fixtures), so it pins
+ * down how the code reads real-shaped data. Live data from `npm run sync` is
+ * checked by validate() in scripts/lib/merge.mjs, not here.
  */
 import { describe, expect, test } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { dataFile } from '../../test/data';
 
 import { createChart } from './chart';
 import { displayName, moveElements, searchRoster } from './data';
 import { ELEMENTS, type Aniimo, type ChartData, type Element, type Meta } from '../types';
 
 const read = <T,>(file: string): T =>
-  JSON.parse(readFileSync(fileURLToPath(new URL(`../../public/data/${file}`, import.meta.url)), 'utf8'));
+  JSON.parse(dataFile(file));
 
 const roster = read<Aniimo[]>('aniimo.json');
 const chartData = read<ChartData>('elements.json');

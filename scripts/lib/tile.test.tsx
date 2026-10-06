@@ -19,8 +19,7 @@
  */
 import { describe, expect, test } from 'vitest';
 import { render } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dataFile } from '../../test/data';
 
 import { createChart } from '../../src/lib/chart';
 import type { Aniimo, ChartData } from '../../src/types';
@@ -29,7 +28,7 @@ import { AniimoGrid } from '../../src/components/AniimoGrid';
 import { aniimoTile } from './pages.mjs';
 import { createChart as jsCreateChart } from './matchups.mjs';
 
-const read = (name: string) => JSON.parse(readFileSync(resolve(process.cwd(), 'public/data', name), 'utf8'));
+const read = (name: string) => JSON.parse(dataFile(name));
 
 const chartData: ChartData = read('elements.json');
 const roster: Aniimo[] = read('aniimo.json');

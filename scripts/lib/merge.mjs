@@ -84,12 +84,26 @@ export function mergeRosters(wikiForms, guideForms) {
   return roster;
 }
 
-// Checks that must hold for the app to be trustworthy. Anything returned here
-// is a real data problem, not a style nit.
-export function validate(roster, chart) {
+// Errors block the refresh; warnings ship. Only what would make the weakness
+// lookup wrong or empty is an error: the roster itself, and each form's
+// elements. Moves and artwork are extras, so a problem there is a warning and
+// the rest of the roster still goes out.
+//
+// `previous` is the roster currently committed, to catch a source that comes
+// back half empty.
+export function validate(roster, chart, previous = []) {
   const known = new Set(chart.order);
   const errors = [];
   const warnings = [];
+
+  // A partial scrape would ship as a shorter list with nothing visibly wrong.
+  if (previous.length && roster.length < previous.length * 0.9) {
+    errors.push(`roster shrank from ${previous.length} to ${roster.length} forms`);
+  }
+  const current = new Set(roster.map((a) => a.id));
+  for (const a of previous) {
+    if (!current.has(a.id)) warnings.push(`${a.name} (${a.morphology}): no longer in the sources`);
+  }
 
   const ids = new Set();
   for (const a of roster) {
@@ -103,8 +117,11 @@ export function validate(roster, chart) {
     if (a.elements.length > 2) warnings.push(`${a.name} (${a.morphology}): ${a.elements.length} elements`);
 
     for (const s of a.skills) {
+      // Untyped rather than refused: the move still lists, it just is not scored.
       if (s.element && !known.has(s.element)) {
-        errors.push(`${a.name}: skill "${s.name}" has unknown element "${s.element}"`);
+        warnings.push(`${a.name}: skill "${s.name}" has unknown element "${s.element}", dropped it`);
+        s.element = null;
+        s.offensive = false;
       }
       if (s.section === 'Combat' && !s.element) {
         warnings.push(`${a.name}: combat skill "${s.name}" has no element`);
@@ -113,6 +130,7 @@ export function validate(roster, chart) {
     if (!a.skills.some((s) => s.offensive)) {
       warnings.push(`${a.name} (${a.morphology}): no element-tagged offensive skill`);
     }
+    if (!a.image || !a.head) warnings.push(`${a.name} (${a.morphology}): missing artwork`);
   }
 
   // The chart must stay internally consistent: if A is strong against B then B
