@@ -22,8 +22,8 @@ import { list } from '../lib/data';
 import type { Aniimo, Element, Skill } from '../types';
 import { ElChip, ElPlate, Icon, ROLE_GLYPH, RoleChip, roleLabel } from './ElementBadge';
 
-/** Same-element attack bonus: a move sharing one of its user's elements hits 25% harder. */
-export const STAB = 1.25;
+/** Same-element attack bonus: a move sharing one of its user's elements hits 10% harder. */
+export const STAB = 1.1;
 
 /**
  * The attacker's view of a multiplier.
@@ -423,7 +423,7 @@ function MoveRow({ move: m, best }: { move: ScoredMove; best: boolean }) {
   );
 }
 
-/** "164 × 1.25 STAB × 0.625×" - the sum behind the effective number. */
+/** "164 × 1.1 STAB × 0.625×" - the sum behind the effective number. */
 const formula = (m: ScoredMove) =>
   `${m.power} × ${m.stab ? `${STAB} STAB` : '1'} × ${formatMultiplier(m.multiplier)}`;
 

@@ -116,12 +116,12 @@ describe('App', () => {
 
     // Emberpup has Fire and Earth moves. Into Water/Ice both come out at
     // 0.625 (Water resists) x 1.6 (strong vs Ice) = 1x, so what separates them
-    // is base power and the 1.25 bonus the Fire ones carry:
-    //   Fire Kick   72 x 1.25 x 1 = 90
-    //   Pebble Kick 40 x 1    x 1 = 40
+    // is base power and the 1.1 bonus the Fire ones carry:
+    //   Fire Kick   72 x 1.1 x 1 = 79.2, shown as 79
+    //   Pebble Kick 40 x 1   x 1 = 40
     const best = screen.getByRole('region', { name: /best move versus Water and Ice/i });
     expect(within(best).getByText('Fire Kick')).toBeTruthy();
-    expect(within(best).getByText('90')).toBeTruthy();
+    expect(within(best).getByText('79')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: /clear target/i }));
     expect(await screen.findByText(/^Attacking moves/)).toBeTruthy();

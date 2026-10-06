@@ -34,7 +34,7 @@ Below that, every attacking move it has, ranked by **effective power**:
 effective = base power × STAB × effectiveness
 ```
 
-STAB is the same-element bonus — ×1.25 when a move shares one of the Aniimo's own elements.
+STAB is the same-element bonus — ×1.1 (+10%) when a move shares one of the Aniimo's own elements.
 Effectiveness comes from the target you pick, one or two elements, and a dual multiplies both sides.
 Moves are scored from the elements an Aniimo's *moves* actually have, not from its own element: Fire
 Emberpup carries an Earth move (Pebble Kick) and Water/Ice Glacy a Light one (Glimmer Shot), so both
@@ -45,13 +45,13 @@ The three together are what make it useful — the best multiplier is often not 
 
 | Move | Element | Base | STAB | Multiplier | Effective |
 | --- | --- | --- | --- | --- | --- |
-| Annihilation Bomb | Dark | 164 | ×1.25 | 0.625× | **128** |
-| Euphoric Sonic Blast | Grass | 30 | ×1.25 | 1.6× | 60 |
+| Annihilation Bomb | Dark | 164 | ×1.1 | 0.625× | **113** |
 | Shard Impact | Earth | 54 | — | 1× | 54 |
-| Malicious Outburst | Dark | 68 | ×1.25 | 0.625× | 53 |
+| Euphoric Sonic Blast | Grass | 30 | ×1.1 | 1.6× | 53 |
+| Malicious Outburst | Dark | 68 | ×1.1 | 0.625× | 47 |
 
-The resisted move wins by a wide margin, and the super-effective one comes second — which a
-multiplier on its own will not tell you. Multipliers are tinted from the attacker's side on this
+The resisted move wins by a wide margin, and the super-effective one only comes third, behind a
+neutral off-element move — which a multiplier on its own will not tell you. Multipliers are tinted from the attacker's side on this
 page: above 1× is the good outcome. Everywhere else on the site the same number is read from the
 defender's side, the spread bar on this page included.
 

@@ -39,7 +39,7 @@ describe('scoreMoves', () => {
     const fire = named('emberpup', [], 'Fire Kick');
     expect(fire.stab).toBe(true);
     expect(fire.multiplier).toBe(1);
-    expect(fire.effective).toBeCloseTo(72 * STAB); // 90
+    expect(fire.effective).toBeCloseTo(72 * STAB); // 79.2
 
     const earth = named('emberpup', [], 'Pebble Kick');
     expect(earth.stab).toBe(false);
@@ -52,7 +52,7 @@ describe('scoreMoves', () => {
     const bomb = named('hexxin', ['Water', 'Ice'], 'Annihilation Bomb');
     expect(bomb.stab).toBe(true);
     expect(bomb.multiplier).toBeCloseTo(0.625);
-    expect(bomb.effective).toBeCloseTo(164 * 1.25 * 0.625); // 128.125
+    expect(bomb.effective).toBeCloseTo(164 * 1.1 * 0.625); // 112.75
 
     const moves = scoreMoves(chart, find('hexxin'), ['Water', 'Ice']);
     expect(moves[0]!.skill.name).toBe('Annihilation Bomb');
@@ -66,8 +66,8 @@ describe('scoreMoves', () => {
     const bubbleRush = named('glacy', ['Grass'], 'Bubble Rush');
 
     expect(bubbleRush.power).toBeGreaterThan(iceOrb.power);
-    expect(iceOrb.effective).toBeCloseTo(20 * 1.25 * 1); // 25
-    expect(bubbleRush.effective).toBeCloseTo(32 * 1.25 * 0.625); // 25
+    expect(iceOrb.effective).toBeCloseTo(20 * 1.1 * 1); // 22
+    expect(bubbleRush.effective).toBeCloseTo(32 * 1.1 * 0.625); // 22
     // Level on effective power, so the raw multiplier breaks the tie.
     expect(moves[0]!.skill.name).toBe('Ice Orb');
 
