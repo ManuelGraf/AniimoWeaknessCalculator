@@ -1,5 +1,5 @@
 {
-  "$comment": "Hand-verified from https://aniimoguide.com/elements. Verified by scripts/sync.mjs on every run.",
+  "$comment": "Hand-maintained from the published element chart (e.g. https://aniimoguide.com/elements). Not scraped; internal consistency is checked by validate() in scripts/lib/merge.mjs and by src/lib/chart.test.ts.",
   "$colours": "color/text are the dark-theme element palette and must stay identical to the [data-el] triplets in src/aniimo-dark.css section 2. The stylesheet is the source of truth; these are here for the few places CSS cannot reach (image tints, inline SVG).",
   "multipliers": { "strong": 1.6, "neutral": 1, "resisted": 0.625 },
   "dualRule": "multiply",

@@ -3,6 +3,10 @@
 // loop: it reads structured payloads, merges them, validates, and only then
 // overwrites the committed database.
 //
+// Only the official wiki is a hard dependency. If aniimoguide is down or its
+// payload stops parsing, the guide's share of the committed roster is reused
+// (stale, with a warning) rather than failing the run or dropping its forms.
+//
 //   npm run sync                 official wiki + aniimoguide (default)
 //   npm run sync -- --wiki-only  official wiki only
 //   npm run sync -- --no-cache   ignore the on-disk HTTP cache
@@ -14,8 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { makeClient } from './lib/http.mjs';
 import { scrapeWiki } from './lib/wiki.mjs';
 import { fetchRoster, attachSkillElements } from './lib/guide.mjs';
-import { mergeRosters, validate, formKey } from './lib/merge.mjs';
-import { verifyChart } from './lib/chart.mjs';
+import { mergeRosters, validate, formKey, guideFormsFromRoster } from './lib/merge.mjs';
 import { resolveHeads } from './lib/images.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -34,6 +37,8 @@ async function main() {
   const startedAt = Date.now();
   const client = makeClient({ cacheDir: useCache ? CACHE : null, concurrency: 6 });
   const chart = JSON.parse(await readFile(path.join(DATA, 'elements.json'), 'utf8'));
+  const previous = await readFile(path.join(DATA, 'aniimo.json'), 'utf8').then(JSON.parse, () => []);
+  const staleSources = [];
 
   console.log(`\nAniimo data sync  (${wikiOnly ? 'official wiki only' : 'official wiki + aniimoguide'})\n`);
 
@@ -48,29 +53,41 @@ async function main() {
   console.log(`  -> ${heads.found}/${heads.total} head icons on the official CDN\n`);
 
   let guideForms = [];
+  let guideProblem = null;
   if (!wikiOnly) {
     console.log('aniimoguide.com');
-    guideForms = await fetchRoster(client);
-    console.log(`  aniidex: ${plural(guideForms.length, 'form')}`);
+    try {
+      guideForms = await fetchRoster(client);
+      console.log(`  aniidex: ${plural(guideForms.length, 'form')}`);
+      // A layout change tends to parse to a short list rather than throw.
+      const before = previous.filter((a) => a.sources.includes('guide')).length;
+      if (guideForms.length < before * 0.9) {
+        guideProblem = `aniidex shrank from ${before} to ${guideForms.length} forms`;
+      }
+    } catch (err) {
+      guideProblem = err.message;
+    }
 
-    // The wiki already types every skill it knows, so only fetch detail pages
-    // for the forms the wiki is missing.
-    const covered = new Set(wikiForms.map((w) => formKey(w.name, w.morphology)));
-    const gaps = guideForms.filter((g) => !covered.has(formKey(g.name, g.morphology)));
-    console.log(`  ${plural(gaps.length, 'form')} not on the wiki -> reading their skill elements`);
-    await attachSkillElements(client, gaps);
-    console.log('');
+    if (guideProblem) {
+      guideForms = guideFormsFromRoster(previous);
+      staleSources.push('aniimoguide.com');
+      console.log(`  UNAVAILABLE (${guideProblem})`);
+      console.log(`  -> reusing ${plural(guideForms.length, 'form')} from the committed roster
+`);
+    } else {
+      // The wiki already types every skill it knows, so only fetch detail pages
+      // for the forms the wiki is missing.
+      const covered = new Set(wikiForms.map((w) => formKey(w.name, w.morphology)));
+      const gaps = guideForms.filter((g) => !covered.has(formKey(g.name, g.morphology)));
+      console.log(`  ${plural(gaps.length, 'form')} not on the wiki -> reading their skill elements`);
+      await attachSkillElements(client, gaps);
+      console.log('');
+    }
   }
 
   const roster = mergeRosters(wikiForms, guideForms);
-  const previous = await readFile(path.join(DATA, 'aniimo.json'), 'utf8').then(JSON.parse, () => []);
   const { errors, warnings } = validate(roster, chart, previous);
-
-  // Confirm our committed chart still matches what the sources publish.
-  const chartCheck = await verifyChart(client, chart);
-  if (chartCheck.ok) console.log(`chart: verified against ${chartCheck.source}`);
-  else console.log(`chart: NOT verified (${chartCheck.reason})`);
-  for (const d of chartCheck.differences ?? []) errors.push(`chart drift: ${d}`);
+  if (guideProblem) warnings.unshift(`aniimoguide unavailable, reused committed data (${guideProblem})`);
 
   const bySource = roster.reduce((acc, a) => {
     const k = a.sources.join('+');
@@ -117,6 +134,7 @@ async function main() {
       bySource,
     },
     warnings: warnings.length,
+    ...(staleSources.length && { staleSources }),
   };
 
   await mkdir(DATA, { recursive: true });

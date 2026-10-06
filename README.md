@@ -111,14 +111,21 @@ npm run sync:check     # dry run, no cache, writes nothing
 ```
 
 `sync` re-derives everything and **refuses to overwrite the database** if validation fails, so a
-broken scrape cannot silently ship. It also re-checks the committed element chart against the live
-source and fails on drift.
+broken scrape cannot silently ship.
+
+Only the official wiki is a hard dependency. If aniimoguide is down, or its payload stops parsing
+(an exception, or an Aniidex more than 10% shorter than the guide-backed forms already committed),
+the run reuses the guide's share of the committed `aniimo.json` instead: the same forms, stats,
+stages, habitats, icons and ids, rebuilt by `guideFormsFromRoster` in
+[`scripts/lib/merge.mjs`](scripts/lib/merge.mjs). That data is stale but not lost. The run warns
+(also as a GitHub annotation) and writes `"staleSources": ["aniimoguide.com"]` into `meta.json`.
+Don't use `sync:wiki` as an outage workaround: it drops the guide-only forms and every stat block.
 
 Output lands in `public/data/` and is committed:
 
 | File | |
 | --- | --- |
-| `elements.json` | The element chart. Hand-maintained, verified on every sync. |
+| `elements.json` | The element chart. Hand-maintained; checked for internal consistency on every sync and in the tests. |
 | `aniimo.json` | The roster: elements, roles, stats, skills. Generated. |
 | `meta.json` | Sync timestamp, counts and per-source breakdown. Generated. |
 
@@ -151,6 +158,21 @@ The wiki wins on anything it knows; aniimoguide fills the gaps. At the time of w
 forms from both, 7 from the wiki alone and 20 from aniimoguide alone. The two were cross-checked
 across every skill they share: **995 agreed and 0 contradicted** — the only differences were skills
 aniimoguide leaves untagged, which the wiki supplies.
+
+**Why aniimoguide stays.** It looks optional, but it is the only source for a lot of what ships:
+the forms the wiki has not published yet, **all** base stats, stage, habitats, 26 head icons, and
+most ids (its slugs, which the prerendered page URLs are built from). Removing it would empty the
+stat blocks and drop those forms. So it is a soft dependency instead (see
+[Refreshing the data](#refreshing-the-data)). It can go once the `guide` count in
+`meta.json → counts.bySource` reaches 0 *and* stats come from somewhere else. Then delete
+`scripts/lib/guide.mjs`, give `mergeRosters` its own ids (keep the current ones stable), and drop the
+credit link in `src/App.tsx`.
+
+**The element chart is not scraped.** It is public, small and stable, so it is hand-kept in
+`elements.json`. An earlier version re-checked it against aniimoguide's element page on every sync,
+by regex over that page's English prose. That broke whenever the wording changed and protected the
+data least likely to change, so it was removed. If the game rebalances elements, edit
+`elements.json` by hand; `validate()` and `src/lib/chart.test.ts` catch an inconsistent edit.
 
 Skills that carry no element at all (movement, buffs, heals, and a few utility moves) are kept but
 marked non-offensive, so they never count toward coverage.
@@ -297,8 +319,7 @@ scripts/
   lib/wiki.mjs        official wiki  (Nuxt payloads)
   lib/guide.mjs       aniimoguide    (Next.js flight chunks)
   lib/devalue.mjs     rehydrates Nuxt's flattened payload format
-  lib/merge.mjs       merge + validation rules
-  lib/chart.mjs       verifies the committed chart against the live source
+  lib/merge.mjs       merge + validation rules, and the guide fallback
   prerender.mjs       writes the static pages, sitemap, robots and llms.txt
   lib/site.mjs        where the site lives (the only place a URL is written)
   lib/matchups.mjs    matchup maths in plain JS, mirrored from src/lib/chart.ts

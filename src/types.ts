@@ -83,4 +83,6 @@ export interface Meta {
     bySource: Record<string, number>;
   };
   warnings: number;
+  /** Sources that failed on the last sync; their share of the roster was reused as-is. */
+  staleSources?: string[];
 }

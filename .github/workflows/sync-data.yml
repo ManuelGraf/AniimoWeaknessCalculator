@@ -31,8 +31,9 @@ jobs:
       - run: npm ci
 
       # sync exits non-zero only if the weakness data itself is unusable (forms
-      # with no or unknown elements, a roster that shrank, chart drift). Gaps in
-      # moves or artwork are warnings and still ship.
+      # with no or unknown elements, a roster that shrank, an inconsistent chart).
+      # Gaps in moves or artwork are warnings and still ship, and so is an
+      # aniimoguide outage: its share of the committed roster is reused.
       - name: Scrape sources
         run: npm run ${{ inputs.wikiOnly && 'sync:wiki' || 'sync' }}
 

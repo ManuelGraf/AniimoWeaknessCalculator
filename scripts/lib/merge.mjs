@@ -84,6 +84,29 @@ export function mergeRosters(wikiForms, guideForms) {
   return roster;
 }
 
+// The inverse of mergeRosters for aniimoguide's share: turn the committed roster
+// back into guide-shaped forms, so a run where aniimoguide is down or has changed
+// its layout can reuse the last good guide data instead of dropping it.
+export function guideFormsFromRoster(roster) {
+  return roster
+    .filter((a) => a.sources.includes('guide'))
+    .map((a) => ({
+      slug: a.id,
+      number: a.number,
+      name: a.name,
+      morphology: a.morphology,
+      stage: a.stage,
+      elements: a.elements,
+      roles: a.roles,
+      description: a.description,
+      stats: a.stats,
+      habitats: a.habitats,
+      image: a.image,
+      head: a.head,
+      skills: a.skills.map((s) => ({ ...s, elements: s.element ? [s.element] : [] })),
+    }));
+}
+
 // Errors block the refresh; warnings ship. Only what would make the weakness
 // lookup wrong or empty is an error: the roster itself, and each form's
 // elements. Moves and artwork are extras, so a problem there is a warning and
