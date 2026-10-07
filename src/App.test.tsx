@@ -168,6 +168,26 @@ describe('App', () => {
     expect(await screen.findByText('Taking damage')).toBeTruthy();
   });
 
+  test('the team tab builds a team in the hash and keeps it across a detour', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await ready();
+
+    await user.click(screen.getByRole('button', { name: 'Team' }));
+    expect(await screen.findByText('Add Aniimo to see what hurts')).toBeTruthy();
+
+    // Open the first slot and pick the top match for a search.
+    await user.click(screen.getAllByRole('button', { name: /Add an Aniimo/ })[0]!);
+    await user.type(screen.getByRole('textbox', { name: 'Search Aniimo' }), 'Glacy{Enter}');
+    await waitFor(() => expect(window.location.hash).toBe('#/team/glacy'));
+    // Glacy is a healer, so it is a member but not an attacker.
+    expect(await screen.findByText(/No DPS or Break on the team/)).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Full chart' }));
+    await user.click(screen.getByRole('button', { name: 'Team' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/team/glacy'));
+  });
+
   test('an Aniimo added by a future sync flows through with no code change', async () => {
     // Everything the UI shows is derived from public/data, so a new entry has
     // to appear in search, in the count, and at its own deep link on its own.

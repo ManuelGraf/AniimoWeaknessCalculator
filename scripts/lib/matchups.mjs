@@ -168,6 +168,7 @@ export const paths = {
   home: '',
   chart: 'chart/',
   roster: 'aniimo/',
+  team: 'team/',
   element: (el) => `element/${el.toLowerCase()}/`,
   dual: (order, a, b) => `element/${dualSlug(order, a, b)}/`,
   aniimo: (a) => `aniimo/${a.id}/`,

@@ -27,6 +27,7 @@ import {
   dualPage,
   aniimoPage,
   rosterPage,
+  teamPage,
   notFoundPage,
   elementFacts,
 } from './lib/pages.mjs';
@@ -185,6 +186,21 @@ async function main() {
     changefreq: 'weekly',
   });
 
+  // One page for the builder, not one per team: a team lives in the hash
+  // (`team/#/team/glacy+hexxin`), which never reaches a crawler anyway.
+  await emit({
+    rel: paths.team,
+    title: 'Aniimo Team Builder — Weakness & Coverage Checker',
+    description:
+      'Build a team of up to four Aniimo and see which elements it is weak to and which its DPS and Break ' +
+      'attackers hit super effectively. Save and share teams.',
+    page: teamPage({ chart, roster, meta, up: upTo(paths.team) }),
+    route: { view: 'team', ids: [] },
+    nav: 'team',
+    priority: '0.9',
+    changefreq: 'weekly',
+  });
+
   /* -------------------------------------------------------------- elements */
 
   for (const el of chart.order) {
@@ -285,7 +301,7 @@ async function main() {
   const secs = ((Date.now() - started) / 1000).toFixed(1);
   console.log(
     `\nPrerendered ${written.length + (chart.pairs().length - dualIndexed)} pages in ${secs}s\n` +
-      `  1 home, 1 chart, 1 roster index\n` +
+      `  1 home, 1 chart, 1 roster index, 1 team builder\n` +
       `  ${chart.order.length} elements, ${dualIndexed} dual pairings indexed ` +
       `(${chart.pairs().length - dualIndexed} unused pairings written as noindex)\n` +
       `  ${roster.length} Aniimo forms\n` +
@@ -480,6 +496,7 @@ ${perElement}
 - [Home — calculator and chart](${abs(paths.home)})
 - [Full 9x9 element chart](${abs(paths.chart)})
 - [All ${meta.counts.forms} Aniimo forms](${abs(paths.roster)})
+- [Team builder — weaknesses and coverage for up to four Aniimo](${abs(paths.team)})
 ${chart.order.map((el) => `- [${el} type effectiveness](${abs(paths.element(el))})`).join('\n')}
 
 ## Dual-element pairings that exist in game

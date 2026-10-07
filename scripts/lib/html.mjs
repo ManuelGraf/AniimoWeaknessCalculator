@@ -269,7 +269,7 @@ const isoDate = (iso) => new Date(iso).toISOString().slice(0, 10);
 /**
  * The glass header, worded and structured the same as the app's own so the
  * swap on boot is not visible. `current` marks the active nav item and is one
- * of 'chart', 'aniimo' or null.
+ * of 'chart', 'aniimo', 'team' or null.
  *
  * The brand mark is an <img> rather than inlined SVG so the logo lives in
  * exactly one file that both this and the React header point at.
@@ -293,6 +293,7 @@ export const header = (up, meta, current = null) => {
 <nav class="nav" aria-label="Primary">
 ${item('chart/', 'Full chart', 'chart')}
 ${item('aniimo/', 'Aniimo', 'aniimo')}
+${item('team/', 'Team', 'team')}
 ${item('#faq', 'FAQ', null)}
 </nav>
 <div class="header-spacer"></div>
@@ -337,6 +338,7 @@ calculator follows the rule and worked examples published on aniimoguide.</p>
 <a href="${up}">Calculator</a>
 <a href="${up}chart/">Full chart</a>
 <a href="${up}aniimo/">All Aniimo</a>
+<a href="${up}team/">Team builder</a>
 </nav>
 </div>
 </footer>`;

@@ -978,3 +978,404 @@ body { position: relative; }
 @media (prefers-reduced-motion: reduce) {
   .graph__edge, .graph__node { transition: none; }
 }
+
+/* ==========================================================================
+   Team builder
+   src/components/TeamBuilder.tsx. Four slots, then defence and offence side
+   by side, each an axis of buckets over a 3x3 grid of element tiles.
+
+   Same rules as the rest of this file. A tile's tint is its data-verdict
+   (defence: bad = the team takes more; offence: good = it lands more), a face
+   ring is the member's own verdict or, on offence, its data-role, and an
+   element is data-el.
+   ========================================================================== */
+
+.team-top {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px 24px; flex-wrap: wrap;
+}
+.team-top__intro { max-width: 640px; }
+.team-top__intro .muted { font-size: 15px; color: var(--text-dim); margin: 0; text-wrap: pretty; }
+.team-top__actions { display: flex; gap: 8px; margin-left: auto; }
+.team-top__actions .btn { font-size: 14px; padding-inline: 18px; cursor: pointer; }
+.team-top__actions .btn--primary { box-shadow: 0 0 30px -8px rgb(var(--accent-rgb) / 0.8); }
+.team-top__actions .btn:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+
+/* -------------------------------------------------------------- saved row */
+
+.team-saved { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 48px; }
+.team-saved .eyebrow { margin: 0 4px 0 0; }
+.team-saved__empty { font-size: 13px; color: var(--text-faint); }
+.team-saved__item { position: relative; display: flex; align-items: center; }
+.team-saved__load {
+  appearance: none; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  height: 44px; padding: 0 40px 0 14px; border-radius: var(--r-md);
+  font-family: var(--font-body); color: var(--text);
+  background: var(--surface-subtle); border: 1px solid var(--line);
+}
+.team-saved__load[aria-current] { background: rgb(var(--accent-rgb) / 0.10); border-color: rgb(var(--accent-rgb) / 0.45); }
+.team-saved__faces { display: flex; }
+.team-saved__face {
+  position: relative; display: block; overflow: hidden;
+  width: 28px; height: 28px; margin-left: -6px; border-radius: var(--r-pill);
+  background: var(--surface-solid); border: 2px solid var(--surface-solid);
+  box-shadow: 0 0 0 1px rgb(var(--el-rgb, 255 255 255) / 0.6);
+}
+.team-saved__face:first-child { margin-left: 0; }
+.team-saved__name {
+  font-size: 13px; font-weight: 600; max-width: 120px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* The small × on a saved team and on a filled slot. Drawn at 28px inside a
+   44px row, so the row is the target size, not the glyph. */
+.team-x {
+  appearance: none; cursor: pointer;
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border-radius: 8px; border: 0;
+  background: rgba(255, 255, 255, 0.05); color: var(--text-mute);
+  font-size: 15px; line-height: 1;
+}
+.team-x:hover { color: var(--bad-text); background: rgb(var(--bad-rgb) / 0.14); }
+
+/* ---------------------------------------------------------------- faces */
+
+/* A round head icon, initials underneath for missing art. */
+.team-face__ini {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 10px; font-weight: 600; color: var(--text-mute);
+}
+.team-face__img {
+  position: relative; width: 100%; height: 100%; display: block;
+  object-fit: cover; border-radius: var(--r-pill);
+}
+
+/* ----------------------------------------------------------------- card */
+
+.team-card { overflow: visible; }
+
+.team-slots {
+  padding: clamp(16px, 3vw, 28px) clamp(16px, 3vw, 28px) 8px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px;
+}
+.team-slot { position: relative; }
+.team-slot__btn {
+  appearance: none; cursor: pointer; width: 100%; min-height: 60px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 44px 8px 10px; border-radius: 16px; text-align: left;
+  font-family: var(--font-body); color: var(--text);
+  background: rgba(255, 255, 255, 0.025); border: 1px solid var(--line-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.team-slot__btn[aria-expanded="true"] { border-color: rgb(var(--accent-rgb) / 0.55); }
+.team-slot__btn[data-filled="true"] {
+  background: linear-gradient(160deg, rgb(var(--el-rgb) / 0.10), rgba(255, 255, 255, 0.02));
+  border-color: rgb(var(--el-rgb) / 0.34);
+}
+.team-slot__thumb {
+  position: relative; width: 42px; height: 42px; flex-shrink: 0; overflow: hidden;
+  display: grid; place-items: center; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line-strong);
+}
+[data-filled="true"] .team-slot__thumb { background: var(--surface-solid); border-color: rgb(var(--el-rgb) / 0.5); }
+.team-slot__thumb .team-face__ini { font-size: 13px; color: var(--text-dim); }
+.team-slot__plus { font-family: var(--font-display); font-size: 22px; font-weight: 500; line-height: 1; color: var(--text-faint); }
+.team-slot__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.team-slot__name {
+  font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--text-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-filled="true"] .team-slot__name { color: var(--text-strong); }
+.team-slot__sub { font-size: 12px; color: var(--text-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-slot__els { display: flex; gap: 4px; flex-shrink: 0; }
+.team-slot__els .el-plate { --plate-size: 26px; --plate-radius: 8px; }
+.team-slot__clear { right: 8px; }
+
+/* ---------------------------------------------------------------- picker */
+
+.team-picker {
+  position: absolute; z-index: 40; top: calc(100% + 8px); left: 0;
+  width: min(420px, calc(100vw - 48px));
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  border-radius: var(--r-lg);
+  background: var(--glass-opaque);
+  -webkit-backdrop-filter: blur(22px);
+          backdrop-filter: blur(22px);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.9), inset 0 1px 0 var(--highlight);
+}
+.team-picker__search {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding-inline: 14px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.team-picker__search svg { width: 16px; height: 16px; color: var(--text-mute); flex-shrink: 0; }
+.team-picker__search input {
+  flex: 1; min-width: 0; height: 42px;
+  background: none; border: 0; outline: none; color: var(--text); font: inherit; font-size: 14px;
+}
+.team-picker__search input::placeholder { color: var(--text-mute); }
+.team-picker__count { font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+
+.team-picker__filters { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px; }
+.team-picker__el {
+  appearance: none; cursor: pointer; padding: 0; border: 0; background: none;
+  display: grid; place-items: center; min-height: 36px;
+}
+.team-picker__el .el-plate { --plate-size: 100%; aspect-ratio: 1; height: auto; max-width: 40px; }
+.team-picker__el[aria-pressed="false"] .el-plate {
+  color: var(--text-mute); background: var(--surface-subtle); border-color: var(--line); box-shadow: none;
+}
+
+.team-picker__list {
+  list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+}
+.team-picker__option {
+  cursor: pointer; display: flex; align-items: center; gap: 12px;
+  padding: 8px 10px; border-radius: 12px;
+}
+.team-picker__option:hover { background: rgba(255, 255, 255, 0.06); }
+.team-picker__option[aria-selected="true"] { background: rgb(var(--accent-rgb) / 0.10); }
+.team-face--md {
+  position: relative; display: block; overflow: hidden; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: var(--r-pill);
+  background: var(--surface-solid); border: 1px solid var(--line);
+}
+.team-picker__label { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.team-picker__name {
+  font-size: 14px; font-weight: 600; color: var(--text-strong);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.team-picker__sub { font-size: 12px; color: var(--text-mute); }
+.team-picker__empty { padding: 16px 10px; font-size: 13px; color: var(--text-mute); }
+
+/* ---------------------------------------------------------------- panels */
+
+.team-panels {
+  padding: 16px clamp(16px, 3vw, 28px) clamp(16px, 3vw, 28px);
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+}
+.team-panel { border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+.team-panel__head {
+  display: flex; align-items: center; gap: 14px; padding: 16px 20px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0; border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, rgb(var(--v-rgb) / 0.10), rgba(255, 255, 255, 0.02) 60%);
+}
+.team-panel__icon {
+  width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: var(--r-md); color: var(--v-text);
+  background: rgb(var(--v-rgb) / 0.14); border: 1px solid rgb(var(--v-rgb) / 0.34);
+}
+.team-panel__icon svg { width: 20px; height: 20px; }
+.team-panel__eyebrow {
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--v-text);
+}
+.team-panel__title {
+  margin: 2px 0 0; font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  line-height: 1.2; color: var(--text-strong);
+}
+
+/* The axis: one bucket per result, each holding the elements that land there.
+   Click pins a bucket, hover previews it; the tiles below dim to match. */
+.team-axis { display: grid; gap: 4px; padding: 14px 20px 0; }
+.team-axis--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.team-axis--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.team-axis__bucket {
+  appearance: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 6px 4px 8px; min-height: 66px; border-radius: 12px;
+  font-family: var(--font-display);
+  background: rgba(13, 18, 29, 0.9); border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: opacity 120ms ease, background 120ms ease;
+}
+.team-axis__bucket[data-hot] { background: rgb(var(--v-rgb) / 0.16); border-color: rgb(var(--v-rgb) / 0.6); }
+.team-axis__bucket[data-verdict="flat"][data-hot] { background: rgba(255, 255, 255, 0.08); }
+.team-axis__bucket[data-dim] { opacity: 0.55; }
+.team-axis__label {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgb(var(--v-rgb) / 0.8);
+}
+[data-verdict="flat"] > .team-axis__label { color: var(--text-mute); }
+[data-hot] > .team-axis__label { color: var(--v-text); }
+.team-axis__els { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; min-height: 22px; }
+.team-axis__els .el-plate { --plate-size: 22px; --plate-radius: 7px; }
+.team-axis__none { font-size: 11px; line-height: 22px; color: var(--text-faint); }
+
+.team-tiles {
+  list-style: none; margin: 0; padding: 14px 20px 20px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+}
+.team-tile {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 10px;
+  border-radius: 14px;
+  background: rgb(var(--v-rgb) / 0.09); border: 1px solid rgb(var(--v-rgb) / 0.34);
+  transition: opacity 140ms ease;
+}
+.team-tile[data-verdict="flat"] { background: rgba(255, 255, 255, 0.035); border-color: var(--line); }
+.team-tile[data-dim] { opacity: 0.3; }
+.team-tile__head { display: flex; align-items: center; gap: 8px; }
+.team-tile__name {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-dim);
+}
+.team-tile__value {
+  display: flex; align-items: baseline; gap: 6px; color: var(--v-text);
+  font-family: var(--font-display); font-weight: 700; line-height: 1;
+}
+.team-tile__label { font-size: 20px; letter-spacing: -0.01em; }
+.team-tile__value .band-arrows { height: 12px; align-self: center; }
+.team-tile__mult { font-size: 22px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.team-tile__counts {
+  margin-top: -6px; font-family: var(--font-body); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; color: var(--v-text); opacity: 0.85;
+}
+.team-tile__value .team-tile__counts { margin-top: 0; }
+.team-tile__faces { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-height: 30px; }
+.team-tile__note { font-size: 11.5px; color: var(--text-faint); margin-left: 2px; }
+
+/* A member's face on a tile. The ring is its own verdict on defence, its role
+   on offence; a doubled matchup (2.56x / 0.39x) glows. */
+.team-face-wrap { position: relative; flex-shrink: 0; }
+.team-face {
+  appearance: none; cursor: pointer; padding: 0; position: relative;
+  width: 30px; height: 30px; border-radius: var(--r-pill);
+  display: block; background: var(--surface-solid);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+}
+.team-face[data-verdict="bad"],
+.team-face[data-verdict="good"] { border-color: rgb(var(--v-rgb)); }
+.team-face[data-verdict="flat"] { opacity: 0.8; }
+.team-face[data-strong] { box-shadow: 0 0 0 2px rgb(var(--v-rgb) / 0.45), 0 0 14px -2px rgb(var(--v-rgb) / 0.9); }
+.team-face[data-role] { border-color: var(--el); box-shadow: 0 0 14px -2px rgb(var(--el-rgb) / 0.9); }
+.team-face[data-benched] { opacity: 0.45; }
+.team-face--empty { width: 30px; height: 30px; border-color: rgba(255, 255, 255, 0.08); opacity: 0.35; cursor: default; }
+
+/* The badges on an offence face: the move's element bottom right, the
+   attacker's role top left. */
+.team-face__move,
+.team-face__role {
+  position: absolute; display: grid; place-items: center; background: var(--surface-solid);
+}
+.team-face__move {
+  right: -5px; bottom: -5px; width: 16px; height: 16px; border-radius: 5px;
+  color: var(--el); border: 1px solid rgb(var(--el-rgb) / 0.6);
+}
+.team-face__move .icon { width: 10px; height: 10px; }
+.team-face__role {
+  left: -5px; top: -5px; width: 14px; height: 14px; border-radius: var(--r-pill);
+  color: var(--el); border: 1px solid var(--el);
+}
+.team-face__role .icon { width: 9px; height: 9px; }
+
+/* ---------------------------------------------------------------- tooltip */
+
+.team-tip {
+  position: absolute; z-index: 20; bottom: calc(100% + 8px); left: -6px;
+  width: 220px; padding: 10px 12px; border-radius: 12px;
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  background: var(--glass-opaque); border: 1px solid var(--line-strong);
+  box-shadow: 0 20px 40px -16px rgba(0, 0, 0, 0.9);
+}
+/* The right-hand column opens leftwards so the tip stays inside the panel. */
+.team-tile:nth-child(3n) .team-tip { left: auto; right: -6px; }
+.team-tip__head { display: flex; align-items: center; gap: 8px; }
+.team-tip__name { font-size: 13px; font-weight: 700; color: var(--text-strong); }
+.team-tip__mult,
+.team-tip__val { font-family: var(--font-display); font-weight: 700; color: var(--v-text); }
+.team-tip__mult { font-size: 12px; }
+.team-tip__role {
+  font-family: var(--font-display); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--el);
+}
+.team-tip__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; }
+.team-tip__side { display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
+.team-tip__side .icon { width: 11px; height: 11px; color: var(--el); }
+.team-tip__val,
+.team-tip__power { white-space: nowrap; }
+.team-tip__power { font-family: var(--font-display); font-weight: 600; color: var(--text-dim); }
+.team-tip__foot { font-size: 11px; color: var(--text-mute); }
+
+/* ---------------------------------------------------------------- switch */
+
+.team-switch {
+  appearance: none; cursor: pointer; text-align: left;
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  margin: 0 20px 16px; padding: 0; border: 0; background: none;
+  font-family: var(--font-body);
+}
+.team-switch__track {
+  position: relative; flex-shrink: 0; width: 40px; height: 22px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.10); border: 1px solid var(--line-strong);
+  transition: background 140ms ease;
+}
+.team-switch[aria-checked="true"] .team-switch__track {
+  background: linear-gradient(170deg, #8CF0D8, var(--accent-deep)); border-color: rgba(255, 255, 255, 0.28);
+}
+.team-switch__knob {
+  position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: var(--r-pill);
+  background: var(--text-strong); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: left 140ms ease;
+}
+.team-switch[aria-checked="true"] .team-switch__knob { left: 20px; }
+.team-switch__text { display: flex; flex-direction: column; line-height: 1.3; }
+.team-switch__label { font-size: 13px; font-weight: 600; color: var(--text); }
+.team-switch__hint { font-size: 11.5px; color: var(--text-mute); }
+
+/* ---------------------------------------------------------------- footer */
+
+.team-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 12px clamp(16px, 3vw, 28px) 16px; border-top: 1px solid var(--line-faint);
+}
+.team-legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.team-legend > [data-verdict] {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--v-text);
+}
+.team-legend b { width: 8px; height: 8px; border-radius: var(--r-pill); background: rgb(var(--v-rgb)); }
+.team-legend [data-verdict="flat"] b { background: #5D6980; }
+.team-legend__hint { font-size: 11.5px; color: var(--text-faint); }
+.team-foot__brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute);
+  overflow-wrap: anywhere;
+}
+.team-foot__brand img { flex-shrink: 0; }
+
+.team-explainer { font-size: 13px; max-width: 720px; text-wrap: pretty; margin: 0; }
+
+@media (max-width: 560px) {
+  .team-slots { grid-template-columns: 1fr; gap: 8px; }
+  .team-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .team-tile:nth-child(3n) .team-tip { left: -6px; right: auto; }
+  .team-tile:nth-child(2n) .team-tip { left: auto; right: -6px; }
+  /* Card, panel and tile each pad their own edge; on a phone that is three
+     gutters deep, which leaves a tile too narrow for four faces in a row. */
+  .team-panels { padding: 12px 10px; }
+  .team-panel__head { padding: 14px; }
+  .team-tiles { padding: 12px; gap: 6px; }
+  .team-tile { padding: 10px 8px; }
+  .team-tile__label { font-size: 17px; }
+  .team-tile__faces { gap: 4px; }
+  .team-face, .team-face--empty { width: 26px; height: 26px; }
+  .team-switch { margin-inline: 12px; }
+  .team-axis { gap: 3px; padding: 12px 12px 0; }
+  .team-axis__bucket { padding-inline: 2px; }
+  .team-axis__label { font-size: 9px; letter-spacing: 0.04em; white-space: normal; text-align: center; }
+  .team-top__actions { margin-left: 0; }
+}
+
+/* Four view tabs and the brand do not fit a phone's width. The wordmark goes
+   (the mark and the sr-only name stay), and the toggle compresses and, at the
+   very narrowest, scrolls rather than pushing the page sideways. */
+@media (max-width: 560px) {
+  .brand__wordmark { display: none; }
+  .view-toggle { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .view-toggle button { padding-inline: 8px; font-size: 12.5px; white-space: nowrap; }
+}

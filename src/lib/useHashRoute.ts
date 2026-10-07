@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
  *   #/aniimo/glacy        one Aniimo's own page (and its form)
  *   #/defense/water+ice   a bare element pairing
  *   #/chart               the full 9x9 chart
+ *   #/team/glacy+_+hexxin a team of up to four, `_` holding an empty slot
  *
  * The prerendered pages (scripts/prerender.mjs) are the exception. They are
  * real files at real paths, so there is no hash to read; each one declares the
@@ -34,6 +35,7 @@ export type Route =
   | { view: 'calc'; kind: 'empty' }
   | { view: 'aniimo'; id: string }
   | { view: 'roster' }
+  | { view: 'team'; ids: (string | null)[] }
   | { view: 'chart' };
 
 export function parseHash(hash: string): Route {
@@ -41,6 +43,9 @@ export function parseHash(hash: string): Route {
   if (path === 'chart') return { view: 'chart' };
 
   const [head, rest] = [path.split('/')[0] ?? '', path.split('/')[1] ?? ''];
+  if (head === 'team') {
+    return { view: 'team', ids: rest.split('+').slice(0, 4).map((id) => (id && id !== '_' ? id : null)) };
+  }
   if (head === 'aniimo' && rest) return { view: 'aniimo', id: rest };
   // Bare `#/aniimo` is the roster, the same thing /aniimo/ serves statically.
   if (head === 'aniimo') return { view: 'roster' };
@@ -55,6 +60,12 @@ export function formatHash(route: Route): string {
   if (route.view === 'chart') return '#/chart';
   if (route.view === 'roster') return '#/aniimo';
   if (route.view === 'aniimo') return `#/aniimo/${route.id}`;
+  if (route.view === 'team') {
+    // Trailing empty slots say nothing, so a one-member team is `#/team/glacy`.
+    const ids = route.ids.map((id) => id ?? '_');
+    while (ids[ids.length - 1] === '_') ids.pop();
+    return ids.length ? `#/team/${ids.join('+')}` : '#/team';
+  }
   if (route.kind === 'elements') return `#/defense/${route.elements.join('+').toLowerCase()}`;
   return '#/';
 }

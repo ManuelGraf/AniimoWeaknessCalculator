@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { createChart } from './lib/chart';
 import { loadDatabase, type Database } from './lib/data';
+import { teamFrom, teamIds } from './lib/team';
 import { useHashRoute, type Route } from './lib/useHashRoute';
 import type { Aniimo, Element } from './types';
 
@@ -12,6 +13,7 @@ import { DefencePanel } from './components/DefencePanel';
 import { ElPlate } from './components/ElementBadge';
 import { ElementGraph } from './components/ElementGraph';
 import { MatrixView } from './components/MatrixView';
+import { TeamBuilder } from './components/TeamBuilder';
 
 export default function App() {
   const [db, setDb] = useState<Database | null>(null);
@@ -53,8 +55,12 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
   // page are both detours rather than a reset.
   const lastCalc = useRef<Extract<Route, { view: 'calc' }>>({ view: 'calc', kind: 'empty' });
   if (route.view === 'calc') lastCalc.current = route;
+  // Likewise the team being built, so a look at the chart does not lose it.
+  const lastTeam = useRef<Extract<Route, { view: 'team' }>>({ view: 'team', ids: [] });
+  if (route.view === 'team') lastTeam.current = route;
 
   const byId = useMemo(() => new Map(db.roster.map((a) => [a.id, a])), [db.roster]);
+  const team = useMemo(() => (route.view === 'team' ? teamFrom(route.ids, byId) : []), [route, byId]);
 
   // The hash is the single source of truth for what is being inspected.
   const selected: Aniimo | null = route.view === 'aniimo' ? (byId.get(route.id) ?? null) : null;
@@ -84,12 +90,29 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
         meta={db.meta}
         view={route.view}
         onView={(v) =>
-          navigate(v === 'chart' ? { view: 'chart' } : v === 'roster' ? { view: 'roster' } : lastCalc.current)
+          navigate(
+            v === 'chart'
+              ? { view: 'chart' }
+              : v === 'roster'
+                ? { view: 'roster' }
+                : v === 'team'
+                  ? lastTeam.current
+                  : lastCalc.current,
+          )
         }
       />
 
-      <main className="page page--narrow section">
-        {route.view === 'chart' ? (
+      {/* Two panels side by side need the full page width, not the narrow column. */}
+      <main className={route.view === 'team' ? 'page section' : 'page page--narrow section'}>
+        {route.view === 'team' ? (
+          <TeamBuilder
+            chart={chart}
+            roster={db.roster}
+            team={team}
+            onTeam={(next) => navigate({ view: 'team', ids: teamIds(next) })}
+            showTitle={!isPrerendered()}
+          />
+        ) : route.view === 'chart' ? (
           // The graph is the at-a-glance read, the table under it the exact one.
           <div className="stack">
             <ElementGraph
@@ -243,10 +266,12 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
  */
 type View = Route['view'];
 
-/** The three the toggle offers; `aniimo` is a page you arrive at, not a tab. */
-type Tab = 'calc' | 'roster' | 'chart';
+/** The four the toggle offers; `aniimo` is a page you arrive at, not a tab. */
+type Tab = 'calc' | 'roster' | 'team' | 'chart';
 
-const VIEW_LABEL: Record<Tab, string> = { calc: 'Calculator', roster: 'Aniimo', chart: 'Full chart' };
+const TABS: Tab[] = ['calc', 'roster', 'team', 'chart'];
+
+const VIEW_LABEL: Record<Tab, string> = { calc: 'Calculator', roster: 'Aniimo', team: 'Team', chart: 'Full chart' };
 
 /**
  * Which button is lit. One form's own page belongs to the roster it was opened
@@ -294,7 +319,7 @@ function Header({ meta, view, onView }: { meta: Database['meta']; view: View; on
       )}
 
       <div className="view-toggle" role="group" aria-label="Views">
-        {(['calc', 'roster', 'chart'] as const).map((v) => (
+        {TABS.map((v) => (
           <button
             key={v}
             type="button"

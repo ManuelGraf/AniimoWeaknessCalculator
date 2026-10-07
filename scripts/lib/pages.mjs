@@ -914,6 +914,166 @@ ${faqSection(q)}
   return { body, jsonLd };
 }
 
+/**
+ * Who counts as coverage in the team builder: DPS and Break forms, through
+ * their element-tagged moves with might. Mirrors attackRole() and
+ * damagingSkills() in src/lib/team.ts.
+ */
+const isAttacker = (a) => a.roles.some((r) => /^(dps|break)$/i.test(r));
+const damagingSkills = (a) => a.skills.filter((s) => s.offensive && s.element && (s.power ?? 0) > 0);
+
+/** The design's sample team, minus anyone a later sync has dropped. */
+const EXAMPLE_TEAM = ['glacy', 'hexxin', 'magmarex', 'emberpup'];
+
+/**
+ * /team/ - the team builder. The builder itself only exists once the app
+ * boots, so the static page is what it answers in words: how a team is scored,
+ * and for every element, which damage dealers actually carry a move that hits
+ * it super effectively. That table is the part worth indexing; "best Aniimo
+ * against Fire" is the question a team builder gets asked.
+ */
+export function teamPage({ chart, roster, meta, up }) {
+  const attackers = roster.filter(isAttacker);
+
+  const counters = chart.order.map((el) => {
+    const by = chart.weakTo(el);
+    const hitters = attackers
+      .map((a) => {
+        const moves = damagingSkills(a).filter((s) => by.includes(s.element));
+        const top = moves.sort((x, y) => y.power - x.power)[0];
+        return top ? { a, move: top } : null;
+      })
+      .filter(Boolean)
+      .sort((x, y) => y.move.power - x.move.power || y.a.isBasic - x.a.isBasic || displayName(x.a).localeCompare(displayName(y.a)));
+    // Regional and Prismana variants share a move list, so they would fill the
+    // top five with one species. The column names each species once.
+    const seen = new Set();
+    const top = hitters.filter(({ a }) => !seen.has(a.name) && seen.add(a.name));
+    return { el, by, list: hitters, top };
+  });
+
+  const thinnest = [...counters].sort((x, y) => x.list.length - y.list.length)[0];
+  const example = EXAMPLE_TEAM.filter((id) => roster.some((a) => a.id === id));
+  const exampleHref = `${up}${paths.team}#/team/${example.join('+')}`;
+
+  const counterTable = `<div class="table-scroll"><table class="data-table">
+<caption>For each defending element: the move elements that hit it for 1.6×, how many DPS and Break forms carry one, and the hardest-hitting species.</caption>
+<thead><tr><th scope="col">Defending element</th><th scope="col">Weak to</th><th scope="col" class="num">Attackers</th><th scope="col">Strongest counters</th></tr></thead>
+<tbody>${counters
+    .map(
+      (c) => `<tr><th scope="row">${elChip(c.el, `${up}${paths.element(c.el)}`)}</th>
+<td>${c.by.map((e) => elChip(e)).join(' ')}</td>
+<td class="num">${c.list.length}</td>
+<td>${
+        c.list.length
+          ? c.top
+              .slice(0, 5)
+              .map(
+                ({ a, move }) =>
+                  `<a href="${up}${paths.aniimo(a)}">${esc(displayName(a))}</a> <span class="muted">(${esc(move.name)}, ${move.power})</span>`,
+              )
+              .join(', ')
+          : '<span class="muted">—</span>'
+      }</td></tr>`,
+    )
+    .join('\n')}</tbody></table></div>`;
+
+  const q = faq([
+    {
+      q: 'How do I check my Aniimo team for weaknesses?',
+      a: 'Add up to four Aniimo to the team builder. The defence panel scores each of the nine elements against the whole team: +1 for every member it hits for 1.6x, +2 for a 2.56x hit on a dual-element member, and the same taken off for every resist. An element scoring two or more is a real threat to the team.',
+    },
+    {
+      q: 'What counts as offensive coverage in the team builder?',
+      a: 'Only DPS and Break Aniimo count by default, and only through their element-tagged moves with might. An Aniimo attacks with its moves, not its typing, so a Fire DPS with an Earth move counts as Earth coverage. Moves with no power, such as heals and buffs, never count.',
+    },
+    {
+      q: 'Why do Support, Heal and Regen Aniimo not count towards coverage?',
+      a: 'They are not meant to land the hit. A healer with a super-effective poke still shows on the tile, dimmed, so you can see it is there, and a switch includes the whole team if you want to count them anyway.',
+    },
+    {
+      q: 'Can I save or share an Aniimo team?',
+      a: 'Yes. Save keeps up to ten teams in your browser, and Copy link gives a URL with the team in it that opens the same four Aniimo for anyone.',
+    },
+    {
+      q: `Which element is hardest to cover in Aniimo?`,
+      a: `${thinnest.el}. Only ${thinnest.list.length} of the ${attackers.length} DPS and Break forms carry a ${list(thinnest.by, 'or')} move with might, which is what it takes to hit ${thinnest.el} for 1.6x.`,
+    },
+  ]);
+
+  const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: 'Team builder' }])}
+<h1>Aniimo team builder &amp; coverage checker</h1>
+<p class="lede">Pick up to four Aniimo and see which elements your team is weak to and which it can hit super
+effectively — before you commit to it.</p>
+
+<div class="answer">
+<p><strong>Defence scores each element against the whole team.</strong> Every member it hits for 1.6× adds one,
+a 2.56× hit on a dual-element member adds two, and every resist takes the same off. Two or more and that element
+threatens the team.</p>
+<p><strong>Offence counts what your DPS and Break Aniimo can actually hit</strong>, using their element-tagged moves
+with might rather than their own typing.</p>
+<p>Dual-element defenders multiply both sides, so 1.6 × 1.6 = 2.56×, and a resistance can cancel a weakness out to 1×.</p>
+</div>
+
+<p><a class="btn btn--primary" href="${exampleHref}">Try an example team</a></p>`)}
+
+<main class="page page--narrow section">
+<section class="card card--flow" data-app-owns>
+<h2>Build your team</h2>
+<p class="muted">The team builder runs in your browser. If it has not appeared above, JavaScript is switched off or
+still loading; everything below works without it.</p>
+</section>
+
+<section class="card card--flow">
+<h2>Best Aniimo to counter each element</h2>
+<p class="muted">${attackers.length} of the ${meta.counts.forms} forms are DPS or Break. Ranked by the might of their
+strongest super-effective move.</p>
+${counterTable}
+</section>
+
+<section class="card card--flow">
+<h2>How the team builder reads a team</h2>
+<div class="prose">
+<p><strong>Defence</strong> lines the nine elements up from <strong>very weak</strong> to <strong>very resistant</strong>.
+Each tile shows how many members are weak to or resist that element, and tapping a face shows the multiplier on each
+side of a dual-element member.</p>
+<p><strong>Offence</strong> finds the best multiplier any counted attacker reaches against each element: super
+effective, neutral only, or resisted. A face shows which move element lands it and the move's might.</p>
+<p>Moves are not tied to an Aniimo's own element, so a team's real coverage often differs from its typing.
+See the <a href="${up}${paths.chart}">full element chart</a> for the underlying matchups, or
+<a href="${up}${paths.roster}">all ${meta.counts.forms} Aniimo</a> for each form's own weaknesses.</p>
+</div>
+</section>
+
+${faqSection(q)}
+</main>`;
+
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Aniimo Team Builder',
+      url: abs(paths.team),
+      applicationCategory: 'GameApplication',
+      operatingSystem: 'Any',
+      browserRequirements: 'Requires JavaScript for the interactive team builder.',
+      description:
+        'Build a team of up to four Aniimo and see its shared weaknesses and the elements its DPS and Break attackers hit super effectively.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      isAccessibleForFree: true,
+      inLanguage: 'en',
+      about: { '@type': 'VideoGame', name: 'Aniimo' },
+    },
+    breadcrumbs([
+      { name: 'Home', rel: paths.home },
+      { name: 'Team builder', rel: paths.team },
+    ]),
+    q.jsonLd,
+  ];
+
+  return { body, jsonLd };
+}
+
 export function notFoundPage({ up }) {
   const body = `${hero(`<h1>Page not found</h1>
 <p class="lede">That URL is not part of the calculator.</p>
