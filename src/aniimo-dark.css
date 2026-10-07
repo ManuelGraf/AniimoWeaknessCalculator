@@ -486,44 +486,6 @@ a:hover { color: #A9F3E1; text-decoration: underline; }
 .glance__chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* -------------------------------------------------------------------------
-   12. Full 9x9 matrix
-   Rows attack, columns defend. Scrolls sideways rather than shrinking below
-   legibility; the row header column stays put.
-   ------------------------------------------------------------------------- */
-
-.matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.matrix {
-  --matrix-label: 150px;
-  min-width: 720px;
-  display: grid;
-  grid-template-columns: var(--matrix-label) repeat(9, minmax(52px, 1fr));
-  gap: 6px;
-  align-items: center;
-}
-.matrix__corner {
-  font-family: var(--font-display); font-size: 11px; font-weight: 600;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint);
-}
-.matrix__head { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.matrix__head span { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--text-mute); }
-.matrix__row-label { display: flex; align-items: center; gap: 10px; }
-.matrix__row-label span { font-size: 13px; font-weight: 600; color: #D6DEEC; }
-
-.matrix__cell {
-  display: flex; align-items: center; justify-content: center;
-  height: 42px; border-radius: 11px;
-  font-family: var(--font-display); font-size: 14px; font-weight: 600;
-  color: var(--v-text);
-  background: rgb(var(--v-rgb) / 0.14);
-  border: 1px solid rgb(var(--v-rgb) / 0.34);
-}
-[data-verdict="flat"].matrix__cell {
-  color: #5D6980; background: rgba(255,255,255,0.028); border-color: var(--line-faint);
-}
-
-.legend { display: flex; flex-wrap: wrap; gap: 8px; }
-
-/* -------------------------------------------------------------------------
    13. FAQ
    ------------------------------------------------------------------------- */
 

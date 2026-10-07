@@ -22,45 +22,6 @@ const pct = (n) => formatMultiplier(n);
 
 /* ------------------------------------------------------------------ pieces */
 
-/** The 9x9 grid. Rows attack, columns defend. */
-function matrixTable(chart) {
-  // Full names rather than the app's four-letter abbreviations: "Lightning"
-  // and "Light" both cut down to "Ligh", which a reader with no colour cue
-  // cannot tell apart. The wrapper scrolls if the row is too wide.
-  const head = chart.order
-    .map(
-      (d) =>
-        `<th scope="col"><span class="matrix-table__head">${elPlate(d, 'xs')}<span>${esc(d)}</span></span></th>`,
-    )
-    .join('');
-
-  const rows = chart
-    .matrix()
-    .map(
-      (row) =>
-        `<tr><th scope="row">${elChip(row.element)}</th>${row.cells
-          .map((c) => {
-            const neutral = band(c.multiplier).key === 'x1';
-            const text = neutral ? '·' : pct(c.multiplier);
-            return `<td${verdictAttr(c.multiplier)}><span title="${esc(row.element)} → ${esc(c.element)}: ${esc(pct(c.multiplier))}">${text}</span></td>`;
-          })
-          .join('')}</tr>`,
-    )
-    .join('\n');
-
-  return `<div class="table-scroll"><table class="matrix-table">
-<caption>Damage multiplier for each attacking element against each defending element. Rows attack, columns defend.</caption>
-<thead><tr><th scope="col">Atk ╲ Def</th>${head}</tr></thead>
-<tbody>${rows}</tbody></table></div>
-${legend()}`;
-}
-
-const legend = () => `<div class="legend">
-<span data-verdict="bad"><b></b>1.6× super effective</span>
-<span data-verdict="flat"><b></b>1× neutral</span>
-<span data-verdict="good"><b></b>0.625× resisted</span>
-</div>`;
-
 /** Incoming damage: what every attacking element does to this defender. */
 function spreadTable(chart, up, defenders, caption) {
   const rows = chart
@@ -267,9 +228,7 @@ what hits it hardest — and what its own moves can hit back.</p>
 Nothing is immune and nothing deals zero damage.</p>
 <p><strong>Against a dual-element Aniimo both matchups multiply</strong>, so the range widens to
 2.56× at best and 0.39× at worst.</p>
-</div>
-
-<p><a class="btn btn--primary" href="${up}chart/">See the full 9×9 chart</a></p>`)}
+</div>`)}
 
 <main class="page page--narrow section">
 <section class="card">
@@ -282,11 +241,7 @@ Nothing is immune and nothing deals zero damage.</p>
 </div>
 </section>
 
-<section class="card card--flow">
-<h2>The full element chart</h2>
-<p class="muted">Rows attack, columns defend. Read across a row to see what that element does to everything else.</p>
-${matrixTable(chart)}
-</section>
+${graphCard(chart, up, { owned: true })}
 
 <section class="card card--flow">
 <h2>Look up a single element</h2>
@@ -329,82 +284,6 @@ ${faqSection(q)}
   return { body, jsonLd };
 }
 
-export function chartPage({ chart, meta, up }) {
-  const prose = chart.order
-    .map((el) => {
-      const f = elementFacts(chart, el);
-      const neutral = chart.order.filter(
-        (d) => !f.strongAgainst.includes(d) && !f.resistedBy.includes(d),
-      );
-      return `<li><strong>${esc(el)}</strong> deals 1.6× to ${esc(list(f.strongAgainst))},
-0.625× to ${esc(list(f.resistedBy))}${neutral.length ? `, and 1× to ${esc(list(neutral))}` : ''}.
-It takes 1.6× from ${esc(list(f.weakTo))} and 0.625× from ${esc(list(f.resists))}.</li>`;
-    })
-    .join('\n');
-
-  const q = faq([
-    {
-      q: 'How do you read the Aniimo element chart?',
-      a: 'Rows are the attacking element and columns are the defending element. The cell where they meet is the damage multiplier the attacker deals: 1.6x super effective, 1x neutral, 0.625x resisted.',
-    },
-    {
-      q: 'Is the Aniimo element chart symmetrical?',
-      a: 'No, it is directional. Lightning deals 1.6x to Water but Water deals 1x back. Dark and Light are the only pair that hit each other for 1.6x in both directions.',
-    },
-    {
-      q: 'Do elements resist themselves in Aniimo?',
-      a: 'Every element resists itself for 0.625x except Dark, which takes neutral damage from Dark.',
-    },
-  ]);
-
-  const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: 'Element chart' }])}
-<h1>Aniimo element chart</h1>
-<p class="lede">The full 9×9 grid of damage multipliers. Rows attack, columns defend.</p>
-<div class="answer">
-<p>A super-effective hit deals <strong>1.6×</strong>, a resisted hit <strong>0.625×</strong>, everything else <strong>1×</strong>.
-Against a dual-element defender the two multipliers are multiplied, giving <strong>2.56×</strong>, 1.6×, 1×, 0.625× or <strong>0.39×</strong>.</p>
-</div>`)}
-
-<main class="page page--narrow section">
-${graphCard(chart, up, { owned: true })}
-
-<section class="card card--flow" data-app-owns>
-${matrixTable(chart)}
-</section>
-
-<section class="card card--flow">
-<h2>Every matchup in words</h2>
-<div class="prose"><ul>${prose}</ul></div>
-</section>
-
-${faqSection(q)}
-</main>`;
-
-  const jsonLd = [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Dataset',
-      name: 'Aniimo element effectiveness chart',
-      description:
-        'Damage multipliers for all nine Aniimo elements, attacker against defender: 1.6x super effective, 1x neutral, 0.625x resisted.',
-      url: abs(paths.chart),
-      license: 'https://creativecommons.org/licenses/by/4.0/',
-      isAccessibleForFree: true,
-      creator: { '@type': 'Person', name: 'Manuel Graf' },
-      dateModified: meta.generatedAt,
-      variableMeasured: 'damage multiplier',
-      about: { '@type': 'VideoGame', name: 'Aniimo' },
-    },
-    breadcrumbs([
-      { name: 'Home', rel: paths.home },
-      { name: 'Element chart', rel: paths.chart },
-    ]),
-    q.jsonLd,
-  ];
-
-  return { body, jsonLd };
-}
-
 export function elementPage({ chart, el, roster, up }) {
   const f = elementFacts(chart, el);
   const mine = roster.filter((a) => a.elements.includes(el));
@@ -433,7 +312,7 @@ export function elementPage({ chart, el, roster, up }) {
     },
   ]);
 
-  const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: 'Element chart', href: `${up}chart/` }, { name: el }])}
+  const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: el }])}
 <div class="form-hero">
 ${elPlate(el, 'lg')}
 <div class="form-hero__body">
@@ -491,7 +370,6 @@ ${faqSection(q)}
   const jsonLd = [
     breadcrumbs([
       { name: 'Home', rel: paths.home },
-      { name: 'Element chart', rel: paths.chart },
       { name: el, rel: paths.element(el) },
     ]),
     q.jsonLd,
@@ -551,7 +429,7 @@ export function dualPage({ chart, a, b, roster, up }) {
     .filter(Boolean)
     .join('\n');
 
-  const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: 'Element chart', href: `${up}chart/` }, { name: `${a} / ${b}` }])}
+  const body = `${hero(`${crumbs([{ name: 'Home', href: up }, { name: `${a} / ${b}` }])}
 <div class="form-hero">
 ${elPlate(a, 'lg')}${elPlate(b, 'lg')}
 <div class="form-hero__body">
@@ -587,7 +465,6 @@ ${faqSection(q)}
   const jsonLd = [
     breadcrumbs([
       { name: 'Home', rel: paths.home },
-      { name: 'Element chart', rel: paths.chart },
       { name: `${a} / ${b}`, rel: paths.dual(chart.order, a, b) },
     ]),
     q.jsonLd,
@@ -1040,7 +917,7 @@ side of a dual-element member.</p>
 <p><strong>Offence</strong> finds the best multiplier any counted attacker reaches against each element: super
 effective, neutral only, or resisted. A face shows which move element lands it and the move's might.</p>
 <p>Moves are not tied to an Aniimo's own element, so a team's real coverage often differs from its typing.
-See the <a href="${up}${paths.chart}">full element chart</a> for the underlying matchups, or
+See the <a href="${up}">element types</a> for the underlying matchups, or
 <a href="${up}${paths.roster}">all ${meta.counts.forms} Aniimo</a> for each form's own weaknesses.</p>
 </div>
 </section>
@@ -1078,6 +955,6 @@ export function notFoundPage({ up }) {
   const body = `${hero(`<h1>Page not found</h1>
 <p class="lede">That URL is not part of the calculator.</p>
 <p><a class="btn btn--primary" href="${up}">Back to the Aniimo weakness calculator</a></p>
-<p class="muted"><a href="${up}chart/">Full element chart</a> · <a href="${up}aniimo/">All Aniimo</a></p>`)}`;
+<p class="muted"><a href="${up}">Element types</a> · <a href="${up}aniimo/">All Aniimo</a></p>`)}`;
   return { body, jsonLd: [] };
 }

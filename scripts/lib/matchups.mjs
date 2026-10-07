@@ -166,7 +166,6 @@ export const dualSlug = (order, a, b) =>
 /** Site-relative URL (no leading slash) for each kind of page. */
 export const paths = {
   home: '',
-  chart: 'chart/',
   roster: 'aniimo/',
   team: 'team/',
   element: (el) => `element/${el.toLowerCase()}/`,

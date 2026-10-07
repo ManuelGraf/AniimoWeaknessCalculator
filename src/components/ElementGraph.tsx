@@ -22,8 +22,7 @@ const CREDIT_URL = 'https://www.reddit.com/user/88IllusionllI88/';
  * The nodes are real buttons laid over the SVG rather than shapes inside it,
  * so they focus, announce and take a tap target like any other button. The
  * SVG itself is aria-hidden: the readout beside it says the same thing in
- * words, and the matrix table below carries the whole chart for anyone who
- * cannot see the arrows.
+ * words for anyone who cannot see the arrows.
  *
  * Mirrored as graphCard() in scripts/lib/graph.mjs for the prerendered pages;
  * scripts/lib/graph.test.tsx holds the two to the same markup.
@@ -232,7 +231,7 @@ function Readout({ chart, active, onOpen }: { chart: Chart; active: Element | nu
       </dl>
       <p>
         <button type="button" className="btn btn--ghost" onClick={() => onOpen(active)}>
-          Open {active} in the calculator
+          See what hits {active} hardest
         </button>
       </p>
       <GraphKey />

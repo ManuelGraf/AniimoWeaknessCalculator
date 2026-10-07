@@ -72,7 +72,7 @@ describe('App', () => {
     render(<App />);
     await ready();
 
-    await user.click(screen.getByRole('button', { name: /^Fire$/i }));
+    await user.click(within(screen.getByRole('group', { name: 'Elements' })).getByRole('button', { name: /^Fire$/i }));
 
     expect(await screen.findByText('Taking damage')).toBeTruthy();
     // Fire is weak to Water and Earth, so both must appear in the 1.6x group.
@@ -154,16 +154,16 @@ describe('App', () => {
     expect(await screen.findByText(/No Aniimo with that name/i)).toBeTruthy();
   });
 
-  test('switching to the chart and back keeps the pairing', async () => {
+  test('switching to the roster and back keeps the pairing', async () => {
     const user = userEvent.setup();
     window.location.hash = '#/defense/fire+water';
     render(<App />);
     await ready();
 
-    await user.click(screen.getByRole('button', { name: 'Full chart' }));
-    expect(await screen.findByRole('table')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Aniimo' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/aniimo'));
 
-    await user.click(screen.getByRole('button', { name: 'Calculator' }));
+    await user.click(screen.getByRole('button', { name: 'Types' }));
     await waitFor(() => expect(window.location.hash).toBe('#/defense/fire+water'));
     expect(await screen.findByText('Taking damage')).toBeTruthy();
   });
@@ -183,7 +183,7 @@ describe('App', () => {
     // Glacy is a healer, so it is a member but not an attacker.
     expect(await screen.findByText(/No DPS or Break on the team/)).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: 'Full chart' }));
+    await user.click(screen.getByRole('button', { name: 'Types' }));
     await user.click(screen.getByRole('button', { name: 'Team' }));
     await waitFor(() => expect(window.location.hash).toBe('#/team/glacy'));
   });
@@ -372,12 +372,22 @@ describe('App', () => {
     });
   });
 
-  test('the chart view renders all nine rows', async () => {
+  test('the types page carries the element graph, and picking from it reads that element', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await ready();
+
+    await user.click(document.querySelector<HTMLElement>('.graph__node[data-el="ice"]')!);
+    await user.click(screen.getByRole('button', { name: 'See what hits Ice hardest' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/defense/ice'));
+    expect(await screen.findByText('Taking damage')).toBeTruthy();
+  });
+
+  test('an old #/chart link lands on the types page', async () => {
     window.location.hash = '#/chart';
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('table')).toBeTruthy());
-    const rows = within(screen.getByRole('table')).getAllByRole('row');
-    expect(rows).toHaveLength(10); // header + nine elements
+    await ready();
+    expect(document.querySelector('.graph-card')).toBeTruthy();
   });
 
   /**
@@ -430,14 +440,14 @@ describe('App', () => {
     });
 
     test('only the duplicated sections are cleared, and not before the app is ready', async () => {
-      prerender({ view: 'chart' });
+      prerender(null, './');
       render(<App />);
       // Everything is still up while the database is in flight, so a slow
       // connection never sees the page blank out.
       expect(document.querySelectorAll('[data-app-owns]')).toHaveLength(2);
 
       await waitFor(() => expect(document.querySelectorAll('[data-app-owns]')).toHaveLength(0));
-      expect(await screen.findByRole('table')).toBeTruthy();
+      expect(document.querySelector('.graph-card')).toBeTruthy();
 
       // The reference content a crawler came for stays on the page.
       expect(document.getElementById('static-faq')).toBeTruthy();

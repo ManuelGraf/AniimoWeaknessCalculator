@@ -124,63 +124,6 @@ body { position: relative; }
   font-variant-numeric: tabular-nums;
 }
 
-/* -------------------------------------------------------- the 9x9 matrix */
-
-/* The design draws the matrix as a CSS grid. This site serves it to crawlers
-   that never paint a pixel, so it stays a real <table> with scoped headers and
-   is styled to match rather than rebuilt out of divs. */
-
-.matrix-table {
-  border-collapse: separate;
-  border-spacing: 6px;
-  width: 100%;
-  min-width: 720px;
-  text-align: center;
-}
-.matrix-table caption {
-  caption-side: top; text-align: left; padding-bottom: 12px;
-  font-size: 12.5px; color: var(--text-mute);
-}
-.matrix-table th,
-.matrix-table td { padding: 0; border: 0; }
-.matrix-table thead th {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-  color: var(--text-mute); padding-bottom: 2px;
-}
-.matrix-table thead th:first-child {
-  font-family: var(--font-display); font-size: 11px;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--text-mute); text-align: left; white-space: nowrap;
-}
-.matrix-table tbody th { text-align: right; white-space: nowrap; }
-.matrix-table__head { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-
-.matrix-table td > span {
-  display: flex; align-items: center; justify-content: center;
-  height: 42px; border-radius: 11px;
-  font-family: var(--font-display); font-size: 14px; font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--v-text);
-  background: rgb(var(--v-rgb) / 0.14);
-  border: 1px solid rgb(var(--v-rgb) / 0.34);
-}
-.matrix-table td[data-verdict="flat"] > span {
-  color: #5D6980;
-  background: rgba(255, 255, 255, 0.028);
-  border-color: var(--line-faint);
-}
-
-.legend {
-  display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px;
-  font-size: 12px; color: var(--text-mute);
-}
-.legend span { display: inline-flex; align-items: center; gap: 7px; }
-.legend b {
-  width: 10px; height: 10px; border-radius: 3px; display: inline-block;
-  background: rgb(var(--v-rgb) / 0.9);
-}
-.legend [data-verdict="flat"] b { background: var(--text-faint); }
-
 /* -------------------------------------------------------------- link sets */
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }

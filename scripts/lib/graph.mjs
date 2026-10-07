@@ -7,7 +7,7 @@
  * scripts/lib/graph.test.tsx holds them to the same geometry for every element
  * and the same markup, so a change made on one side only fails the build.
  *
- * The static copy has no behaviour of its own. On /chart/ it is marked
+ * The static copy has no behaviour of its own. On the home page it is marked
  * `data-app-owns` and the interactive one replaces it on boot; on an element
  * page it stays, drawn with that element already selected, and its nodes are
  * plain links to the other elements' pages.
@@ -253,7 +253,7 @@ ${graphKey()}
 <div><dt>Weak to</dt>${chips(r.weakTo)}</div>
 <div><dt>Resists</dt>${chips(r.resists)}</div>
 </dl>
-<p><a class="btn btn--ghost" href="${up}#/defense/${slug(active)}">Open ${esc(active)} in the calculator</a></p>
+<p><a class="btn btn--ghost" href="${up}#/defense/${slug(active)}">See what hits ${esc(active)} hardest</a></p>
 ${graphKey()}
 </div>`;
 }

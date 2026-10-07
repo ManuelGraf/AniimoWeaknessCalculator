@@ -22,7 +22,6 @@ import { createChart, paths, displayName, formatMultiplier, band } from './lib/m
 import { renderPage, header, footer, list, clamp } from './lib/html.mjs';
 import {
   homePage,
-  chartPage,
   elementPage,
   dualPage,
   aniimoPage,
@@ -155,20 +154,9 @@ async function main() {
       `plus the weaknesses and move coverage of all ${meta.counts.forms} Aniimo forms.`,
     page: homePage({ chart, roster, meta, up: upTo(paths.home) }),
     route: null,
+    nav: 'types',
     priority: '1.0',
     changefreq: 'weekly',
-  });
-
-  await emit({
-    rel: paths.chart,
-    title: 'Aniimo Element Chart — Full 9×9 Damage Multiplier Table',
-    description:
-      'Every Aniimo matchup in one grid: which element deals 1.6×, which is resisted to 0.625×, and how dual-element defenders reach 2.56× or 0.39×.',
-    page: chartPage({ chart, meta, up: upTo(paths.chart) }),
-    route: { view: 'chart' },
-    nav: 'chart',
-    priority: '0.9',
-    changefreq: 'monthly',
   });
 
   await emit({
@@ -284,6 +272,12 @@ async function main() {
   });
   await writeFile(path.join(DIST, '404.html'), notFoundHtml, 'utf8');
 
+  // /chart/ was its own page until the graph moved onto the home page. Pages
+  // has no server-side redirects, so the old URL keeps a stub that sends
+  // links and bookmarks home and tells crawlers where the content went.
+  await mkdir(path.join(DIST, 'chart'), { recursive: true });
+  await writeFile(path.join(DIST, 'chart', 'index.html'), movedStub(paths.home), 'utf8');
+
   /* --------------------------------------------------- robots and sitemaps */
 
   await writeFile(path.join(DIST, 'robots.txt'), robots(), 'utf8');
@@ -301,12 +295,29 @@ async function main() {
   const secs = ((Date.now() - started) / 1000).toFixed(1);
   console.log(
     `\nPrerendered ${written.length + (chart.pairs().length - dualIndexed)} pages in ${secs}s\n` +
-      `  1 home, 1 chart, 1 roster index, 1 team builder\n` +
+      `  1 home, 1 roster index, 1 team builder\n` +
       `  ${chart.order.length} elements, ${dualIndexed} dual pairings indexed ` +
       `(${chart.pairs().length - dualIndexed} unused pairings written as noindex)\n` +
       `  ${roster.length} Aniimo forms\n` +
       `  sitemap.xml (${written.length} URLs), robots.txt, llms.txt, 404.html\n`,
   );
+}
+
+/** A retired URL's whole page: straight on to `rel`, with no index of its own. */
+function movedStub(rel) {
+  const to = abs(rel);
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Moved — ${SITE_NAME}</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="${to}">
+<meta http-equiv="refresh" content="0; url=${to}">
+</head>
+<body><p>This page has moved to <a href="${to}">${to}</a>.</p></body>
+</html>
+`;
 }
 
 /* ------------------------------------------------------------ verification */
@@ -493,8 +504,7 @@ ${perElement}
 
 ## Pages
 
-- [Home — calculator and chart](${abs(paths.home)})
-- [Full 9x9 element chart](${abs(paths.chart)})
+- [Home — element types, relation graph and calculator](${abs(paths.home)})
 - [All ${meta.counts.forms} Aniimo forms](${abs(paths.roster)})
 - [Team builder — weaknesses and coverage for up to four Aniimo](${abs(paths.team)})
 ${chart.order.map((el) => `- [${el} type effectiveness](${abs(paths.element(el))})`).join('\n')}

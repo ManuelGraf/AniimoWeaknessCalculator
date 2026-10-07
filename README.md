@@ -65,15 +65,15 @@ whether or not anything falls in them.
 Filter by name, by role, or by up to two elements at once — two elements means *both*, which is how
 you find an exact dual pairing. Clicking a tile opens that form's own page.
 
-**Full chart** — every 1.6× matchup drawn as arrows from attacker to defender, and the raw 9×9 grid
-under it, rows attack and columns defend. Hovering, focusing or tapping an element in the graph lights
+**Element graph** (on the Types page, under the picker) — every 1.6× matchup drawn as arrows from
+attacker to defender. Hovering, focusing or tapping an element in the graph lights
 up its own arrows, draws in the resists (dashed) for that element only, and lists what it beats, what
 beats it and what it resists beside the graph; a tap pins it, Escape or a click on the background lets
 go. The layout follows the community chart by
 [u/88IllusionllI88](https://www.reddit.com/user/88IllusionllI88/); see [GRAPH.md](GRAPH.md) for why it is
-placed by hand.
+placed by hand. "See what hits X hardest" reads that element in the picker above.
 
-State lives in the URL hash (`#/aniimo`, `#/aniimo/glacy`, `#/defense/water+ice`, `#/chart`), so any
+State lives in the URL hash (`#/aniimo`, `#/aniimo/glacy`, `#/defense/water+ice`), so any
 result can be linked. A hash is used rather than paths because GitHub Pages serves no SPA fallback.
 The same lookups also exist as real pages (`/aniimo/`, `/aniimo/glacy/`, `/element/water-ice/`)
 written at build time — see [Static pages](#static-pages).
@@ -230,8 +230,8 @@ like *"what is Glacy weak to"* do not. So `npm run build` runs
 every lookup the tool supports:
 
 ```
-/                          calculator, the 9x9 chart, every element at a glance
-/chart/                    the relation graph, the full grid, and every matchup in prose
+/                          types: calculator, the relation graph, every element at a glance
+/chart/                    retired; a noindex redirect stub to / so old links keep working
 /element/fire/             ×9   weak to / resists / strong against, the graph with Fire selected,
                                 and every Fire Aniimo
 /element/fire-earth/       ×36  dual pairings (the 9 no Aniimo has are noindex)
@@ -375,7 +375,7 @@ structure.
 The element graph is the other: `<ElementGraph>` in
 [`src/components/ElementGraph.tsx`](src/components/ElementGraph.tsx) and `graphCard()` in
 [`scripts/lib/graph.mjs`](scripts/lib/graph.mjs), with the layout and path geometry mirrored between
-`src/lib/graph.ts` and that same file. The app's copy replaces the static one on `/chart/`; on an
+`src/lib/graph.ts` and that same file. The app's copy replaces the static one on the home page; on an
 element page the static copy stays, drawn with that element selected, and its nodes link to the
 other element pages. [`scripts/lib/graph.test.tsx`](scripts/lib/graph.test.tsx) holds the two to the
 same geometry for every element and diffs the markup the same way the tile test does.

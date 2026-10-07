@@ -8,7 +8,6 @@ import { useCallback, useEffect, useState } from 'react';
  *   #/aniimo              the whole roster as browsable tiles
  *   #/aniimo/glacy        one Aniimo's own page (and its form)
  *   #/defense/water+ice   a bare element pairing
- *   #/chart               the full 9x9 chart
  *   #/team/glacy+_+hexxin a team of up to four, `_` holding an empty slot
  *
  * The prerendered pages (scripts/prerender.mjs) are the exception. They are
@@ -35,13 +34,10 @@ export type Route =
   | { view: 'calc'; kind: 'empty' }
   | { view: 'aniimo'; id: string }
   | { view: 'roster' }
-  | { view: 'team'; ids: (string | null)[] }
-  | { view: 'chart' };
+  | { view: 'team'; ids: (string | null)[] };
 
 export function parseHash(hash: string): Route {
   const path = hash.replace(/^#\/?/, '').trim().toLowerCase();
-  if (path === 'chart') return { view: 'chart' };
-
   const [head, rest] = [path.split('/')[0] ?? '', path.split('/')[1] ?? ''];
   if (head === 'team') {
     return { view: 'team', ids: rest.split('+').slice(0, 4).map((id) => (id && id !== '_' ? id : null)) };
@@ -57,7 +53,6 @@ export function parseHash(hash: string): Route {
 }
 
 export function formatHash(route: Route): string {
-  if (route.view === 'chart') return '#/chart';
   if (route.view === 'roster') return '#/aniimo';
   if (route.view === 'aniimo') return `#/aniimo/${route.id}`;
   if (route.view === 'team') {

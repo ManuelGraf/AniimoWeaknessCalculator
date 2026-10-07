@@ -12,7 +12,6 @@ import { AniimoGrid } from './components/AniimoGrid';
 import { DefencePanel } from './components/DefencePanel';
 import { ElPlate } from './components/ElementBadge';
 import { ElementGraph } from './components/ElementGraph';
-import { MatrixView } from './components/MatrixView';
 import { TeamBuilder } from './components/TeamBuilder';
 
 export default function App() {
@@ -51,11 +50,11 @@ type Nav = ReturnType<typeof useHashRoute>[1];
 function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof useHashRoute>[0]; navigate: Nav }) {
   const chart = useMemo(() => createChart(db.chart), [db.chart]);
 
-  // Remember the pairing being inspected, so the chart tab and a form's own
-  // page are both detours rather than a reset.
+  // Remember the pairing being inspected, so the roster and a form's own page
+  // are both detours rather than a reset.
   const lastCalc = useRef<Extract<Route, { view: 'calc' }>>({ view: 'calc', kind: 'empty' });
   if (route.view === 'calc') lastCalc.current = route;
-  // Likewise the team being built, so a look at the chart does not lose it.
+  // Likewise the team being built, so a look elsewhere does not lose it.
   const lastTeam = useRef<Extract<Route, { view: 'team' }>>({ view: 'team', ids: [] });
   if (route.view === 'team') lastTeam.current = route;
 
@@ -90,15 +89,7 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
         meta={db.meta}
         view={route.view}
         onView={(v) =>
-          navigate(
-            v === 'chart'
-              ? { view: 'chart' }
-              : v === 'roster'
-                ? { view: 'roster' }
-                : v === 'team'
-                  ? lastTeam.current
-                  : lastCalc.current,
-          )
+          navigate(v === 'roster' ? { view: 'roster' } : v === 'team' ? lastTeam.current : lastCalc.current)
         }
       />
 
@@ -112,15 +103,6 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
             onTeam={(next) => navigate({ view: 'team', ids: teamIds(next) })}
             showTitle={!isPrerendered()}
           />
-        ) : route.view === 'chart' ? (
-          // The graph is the at-a-glance read, the table under it the exact one.
-          <div className="stack">
-            <ElementGraph
-              chart={chart}
-              onOpen={(el) => navigate({ view: 'calc', kind: 'elements', elements: [el.toLowerCase()] })}
-            />
-            <MatrixView chart={chart} />
-          </div>
         ) : route.view === 'aniimo' ? (
           // Keyed by id so opening another form starts its target picker clean
           // rather than carrying the last one's over.
@@ -229,6 +211,9 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
                 <DefencePanel chart={chart} defenders={elements} />
               </Panel>
             )}
+
+            {/* The whole chart at a glance; picking a node from it reads that element above. */}
+            <ElementGraph chart={chart} onOpen={(el) => setElements([el])} />
           </div>
         )}
       </main>
@@ -266,12 +251,12 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
  */
 type View = Route['view'];
 
-/** The four the toggle offers; `aniimo` is a page you arrive at, not a tab. */
-type Tab = 'calc' | 'roster' | 'team' | 'chart';
+/** The three the toggle offers; `aniimo` is a page you arrive at, not a tab. */
+type Tab = 'calc' | 'roster' | 'team';
 
-const TABS: Tab[] = ['calc', 'roster', 'team', 'chart'];
+const TABS: Tab[] = ['calc', 'roster', 'team'];
 
-const VIEW_LABEL: Record<Tab, string> = { calc: 'Calculator', roster: 'Aniimo', team: 'Team', chart: 'Full chart' };
+const VIEW_LABEL: Record<Tab, string> = { calc: 'Types', roster: 'Aniimo', team: 'Team' };
 
 /**
  * Which button is lit. One form's own page belongs to the roster it was opened

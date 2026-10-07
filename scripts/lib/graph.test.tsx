@@ -3,7 +3,7 @@
  *
  * The element graph is written twice, like the Aniimo tile: <ElementGraph> in
  * src/components/ElementGraph.tsx for the app, graphCard() in ./graph.mjs for
- * the static pages. On /chart/ the app's copy replaces the static one on boot,
+ * the static pages. On the home page the app's copy replaces the static one on boot,
  * so any difference is a visible jump; on an element page the static copy is
  * the only one there is.
  *
@@ -116,7 +116,7 @@ describe('the app graph', () => {
     let opened: string | null = null;
     const { container, getByRole } = render(<ElementGraph chart={ts} onOpen={(el) => (opened = el)} />);
     fireEvent.click(container.querySelector('.graph__node[data-el="ice"]')!);
-    fireEvent.click(getByRole('button', { name: 'Open Ice in the calculator' }));
+    fireEvent.click(getByRole('button', { name: 'See what hits Ice hardest' }));
     expect(opened).toBe('Ice');
   });
 });

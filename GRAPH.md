@@ -1,6 +1,6 @@
 # Element relation graph — design note
 
-Built. The chart page opens on it, above the matrix table, and every element page carries a static
+Built. The Types page (home) carries it under the element picker, and every element page carries a static
 copy with that element selected. This records why it looks the way it does, so the decisions do not
 have to be re-made when someone wants to nudge it.
 
@@ -8,7 +8,7 @@ have to be re-made when someone wants to nudge it.
 | --- | --- |
 | Geometry | `src/lib/graph.ts`, mirrored in `scripts/lib/graph.mjs` |
 | App | `src/components/ElementGraph.tsx` |
-| Static pages | `graphCard()` in `scripts/lib/graph.mjs`, used by `chartPage()` and `elementPage()` |
+| Static pages | `graphCard()` in `scripts/lib/graph.mjs`, used by `homePage()` and `elementPage()` |
 | Styles | the "Element relation graph" section at the end of `src/aniimo-site.css` |
 | Tests | `scripts/lib/graph.test.tsx` |
 
@@ -71,6 +71,6 @@ scripts do not import from `src/`. The test holds both halves to identical geome
 element and identical markup at rest and with an element selected. The one intended difference is
 that static nodes are links to the element pages and app nodes are toggle buttons.
 
-- `/chart/`: the static copy is `data-app-owns` and the interactive one replaces it on boot.
+- `/` (home): the static copy is `data-app-owns` and the interactive one replaces it on boot.
 - `/element/<el>/`: the static copy stays, drawn with that element active. Crawlers get nine
   internal links out of it.
