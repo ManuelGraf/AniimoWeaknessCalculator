@@ -66,6 +66,10 @@ const SPRITE = readFileSync(path.join(HERE, '..', '..', 'src', 'aniimo-icons.svg
  */
 const AMBIENT = '<div class="ambient" aria-hidden="true"><div class="ambient__grid"></div></div>';
 
+/** Where src/App.tsx portals its header, and where the rest of it mounts. */
+const APP_HEADER = '<div id="app-header"></div>';
+const ROOT = '<div id="root"></div>';
+
 /** Kept in step with the same pair in index.html. */
 const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -171,11 +175,14 @@ export const roleBadge = (role) => {
  * The document. `rel` is the site-relative directory (`''` for home), which
  * fixes both the canonical URL and how far `../` has to climb for assets.
  *
- * #root comes first and #prerender second, because the app does not replace
- * this page - it mounts above it. Only the parts the running app genuinely
- * duplicates are marked `data-app-owns` and removed on boot; the headline, the
- * summary, the questions and the cross-links stay, so a crawler that renders
- * JavaScript reads the same page a crawler that does not.
+ * The app does not replace this page - it mounts into it. Its header goes in
+ * the #app-header slot at the top, where the static header sits, and the rest
+ * of it in #root, which hero() leaves directly under the page's headline. So
+ * the order reads header, headline, app, reference content, the same as the
+ * dev shell. Only the parts the running app genuinely duplicates are marked
+ * `data-app-owns` and removed on boot; the headline, the summary, the
+ * questions and the cross-links stay, so a crawler that renders JavaScript
+ * reads the same page a crawler that does not.
  */
 export function renderPage({
   rel,
@@ -196,6 +203,10 @@ export function renderPage({
   up: upOverride,
   canonical: withCanonical = true,
 }) {
+  // Every page opens with hero(), which is what places the mount point.
+  const mounts = body.split(ROOT).length - 1;
+  if (mounts !== 1) throw new Error(`${rel || '/'}: expected one app mount point (#root), found ${mounts}`);
+
   const up = upOverride ?? upTo(rel);
   const canonical = abs(rel);
   const desc = clamp(description);
@@ -249,8 +260,8 @@ ${assets(up)}
 <body>
 ${SPRITE}
 ${AMBIENT}
-<div id="root"></div>
 <div id="prerender">
+${APP_HEADER}
 ${body}
 </div>
 </body>
@@ -302,15 +313,17 @@ ${item('#faq', 'FAQ', null)}
 };
 
 /**
- * A page's opening block: breadcrumbs, headline, lede and the lead answer.
- * The coloured field the header blurs is AMBIENT below, emitted once per
- * document rather than per hero.
+ * A page's opening block: breadcrumbs, headline, lede and the lead answer,
+ * followed by the app's mount point, so the running app lands under the
+ * headline rather than above it. The coloured field the header blurs is
+ * AMBIENT below, emitted once per document rather than per hero.
  */
 export const hero = (inner) => `<div class="hero">
 <div class="page page--narrow hero__inner">
 ${inner}
 </div>
-</div>`;
+</div>
+${ROOT}`;
 
 export const crumbs = (trail) =>
   `<nav class="crumbs" aria-label="Breadcrumb">${trail

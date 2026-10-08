@@ -36,11 +36,21 @@ h1.brand { font-size: inherit; font-weight: inherit; letter-spacing: normal; mar
    first real section happens to start. It paints at z-index 0; the header is
    30 and the content below is 1, so it never covers anything.
 
-   It deliberately does NOT live inside .hero. On a prerendered page the app
-   mounts above the static markup, so the hero is not the first thing on the
-   page and an ambient anchored to it would land halfway down. */
+   It deliberately does NOT live inside .hero, which is not the first thing on
+   every page: the dev shell has none, and its header and app come first. */
 body { position: relative; }
 #root, #prerender { position: relative; z-index: 1; }
+
+/* On a prerendered page the app's header is portalled into this slot at the
+   top of #prerender. The slot generates no box, so the header stays sticky
+   against the whole page rather than against a wrapper exactly its height. */
+#app-header { display: contents; }
+
+/* Switched in place to a view the static page is not about (the Aniimo tab on
+   the home page, say), its headline and article would be describing something
+   else; the app titles itself instead. The footer stays. */
+#prerender[data-off-page] > .hero,
+#prerender[data-off-page] > main { display: none; }
 
 .hero { position: relative; padding-top: clamp(28px, 5vw, 56px); }
 .hero__inner { position: relative; z-index: 1; }

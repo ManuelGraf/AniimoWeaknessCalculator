@@ -392,7 +392,7 @@ describe('App', () => {
 
   /**
    * The deployed pages are static HTML written by scripts/prerender.mjs. The
-   * app mounts above that markup rather than replacing it, and clears only the
+   * app mounts under its headline rather than replacing it, and clears only the
    * parts it genuinely duplicates. Getting that wrong has no visible symptom
    * until a crawler reads either a blank page or the same table twice.
    */
@@ -401,6 +401,7 @@ describe('App', () => {
       const div = document.createElement('div');
       div.id = 'prerender';
       div.innerHTML = `
+        <div id="app-header"></div>
         <header data-app-owns>static header</header>
         <h1>Fire type effectiveness in Aniimo</h1>
         <section data-app-owns><h2>Damage taken by a Fire Aniimo</h2></section>
@@ -500,6 +501,42 @@ describe('App', () => {
       // happy-dom serves the document from the origin root, so two levels up
       // from a /element/fire/ page lands back at /data/.
       expect(seen.every((u) => new URL(u).pathname.startsWith('/data/'))).toBe(true);
+    });
+
+    test('the app header takes the static one’s place at the top of the page', async () => {
+      prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
+      const { container } = render(<App />);
+      await ready();
+
+      const slot = document.getElementById('app-header')!;
+      expect(slot.querySelector('.site-header')).toBeTruthy();
+      expect(container.querySelector('.site-header')).toBeNull();
+      // The slot sits before the headline, the app's own content after it.
+      const h1 = screen.getByRole('heading', { level: 1 });
+      expect(slot.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test('switching to a view the page is not about hands the title to the app', async () => {
+      prerender(null, './');
+      render(<App />);
+      await ready();
+      const page = document.getElementById('prerender')!;
+      expect(page.hasAttribute('data-off-page')).toBe(false);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Aniimo' }));
+      await waitFor(() => expect(page.hasAttribute('data-off-page')).toBe(true));
+      expect(screen.getByText(/All \d+ Aniimo type weaknesses & resistances/)).toBeTruthy();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Types' }));
+      await waitFor(() => expect(page.hasAttribute('data-off-page')).toBe(false));
+    });
+
+    test('an element page is only about its own pairing', async () => {
+      prerender({ view: 'calc', kind: 'elements', elements: ['fire'] });
+      window.location.hash = '#/defense/water';
+      render(<App />);
+      await ready();
+      await waitFor(() => expect(document.getElementById('prerender')!.hasAttribute('data-off-page')).toBe(true));
     });
 
     test('off a prerendered page the app owns the h1 and the footer', async () => {

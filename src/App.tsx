@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { createChart } from './lib/chart';
 import { loadDatabase, type Database } from './lib/data';
@@ -24,7 +25,7 @@ export default function App() {
   }, []);
 
   // A prerendered page (scripts/prerender.mjs) already answers the question in
-  // plain HTML, and the app mounts above it rather than replacing it: the
+  // plain HTML, and the app mounts under its headline rather than replacing it: the
   // headline, summary, questions and cross-links stay on the page for anyone
   // reading it, crawler or not. Only what the running app genuinely duplicates
   // is marked `data-app-owns`, and only once there is something to replace it
@@ -42,6 +43,27 @@ export default function App() {
 
 /** True on a page written by the prerenderer, which brings its own static copy. */
 const isPrerendered = () => !!document.getElementById('prerender');
+
+/**
+ * Whether the prerendered page's own headline and copy describe `route`. They
+ * stop doing so once the app is switched to another view in place - the
+ * Aniimo tab on the home page, say - and then the static hero and article are
+ * hidden and the app titles itself, exactly as it does on the dev shell.
+ *
+ * The home page (no `__ROUTE__`) is the calculator, so it covers any pairing;
+ * an element page covers only its own.
+ */
+function pageDescribes(route: Route): boolean {
+  if (!isPrerendered()) return false;
+  const page: Route = window.__ROUTE__ ?? { view: 'calc', kind: 'empty' };
+  if (page.view !== route.view) return false;
+  if (page.view === 'aniimo') return route.view === 'aniimo' && route.id === page.id;
+  if (page.view === 'calc' && page.kind === 'elements') {
+    const want = route.view === 'calc' && route.kind === 'elements' ? route.elements : [];
+    return want.length === page.elements.length && want.every((e) => page.elements.includes(e));
+  }
+  return true;
+}
 
 const siteRoot = () => window.__SITE_ROOT__ ?? './';
 
@@ -83,15 +105,29 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
   const selectAniimo = (a: Aniimo | null) =>
     navigate(a ? { view: 'aniimo', id: a.id } : { view: 'calc', kind: 'empty' });
 
+  // Who titles the page: the static hero, or (off its subject) the app.
+  const staticTitle = pageDescribes(route);
+  useEffect(() => {
+    document.getElementById('prerender')?.toggleAttribute('data-off-page', isPrerendered() && !staticTitle);
+  }, [staticTitle]);
+
+  // On a prerendered page the header goes to the slot the static one held, at
+  // the top of the document, while the rest of the app sits under the hero.
+  const headerSlot = document.getElementById('app-header');
+  const header = (
+    <Header
+      meta={db.meta}
+      view={route.view}
+      linkHome={staticTitle}
+      onView={(v) =>
+        navigate(v === 'roster' ? { view: 'roster' } : v === 'team' ? lastTeam.current : lastCalc.current)
+      }
+    />
+  );
+
   return (
     <>
-      <Header
-        meta={db.meta}
-        view={route.view}
-        onView={(v) =>
-          navigate(v === 'roster' ? { view: 'roster' } : v === 'team' ? lastTeam.current : lastCalc.current)
-        }
-      />
+      {headerSlot ? createPortal(header, headerSlot) : header}
 
       {/* Two panels side by side need the full page width, not the narrow column. */}
       <main className={route.view === 'team' ? 'page section' : 'page page--narrow section'}>
@@ -101,7 +137,7 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
             roster={db.roster}
             team={team}
             onTeam={(next) => navigate({ view: 'team', ids: teamIds(next) })}
-            showTitle={!isPrerendered()}
+            showTitle={!staticTitle}
           />
         ) : route.view === 'aniimo' ? (
           // Keyed by id so opening another form starts its target picker clean
@@ -129,7 +165,7 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
               The static /aniimo/ page keeps its own headline and lede, so this
               only adds one when the app is running on its own.
             */}
-            {!isPrerendered() && (
+            {!staticTitle && (
               <div>
                 <h2 className="roster-title">All {db.meta.counts.forms} Aniimo type weaknesses &amp; resistances</h2>
                 <p className="muted">
@@ -264,7 +300,18 @@ const VIEW_LABEL: Record<Tab, string> = { calc: 'Types', roster: 'Aniimo', team:
  */
 const currentTab = (view: View): Tab => (view === 'aniimo' ? 'roster' : view);
 
-function Header({ meta, view, onView }: { meta: Database['meta']; view: View; onView: (v: Tab) => void }) {
+function Header({
+  meta,
+  view,
+  linkHome,
+  onView,
+}: {
+  meta: Database['meta'];
+  view: View;
+  /** The static hero holds the h1, so the site name is only a link home. */
+  linkHome: boolean;
+  onView: (v: Tab) => void;
+}) {
   const synced = new Date(meta.generatedAt);
   const current = currentTab(view);
   const up = siteRoot();
@@ -295,7 +342,7 @@ function Header({ meta, view, onView }: { meta: Database['meta']; view: View; on
         ("Fire type effectiveness in Aniimo"), so the site name steps down
         to a link home rather than competing as a second h1.
       */}
-      {isPrerendered() ? (
+      {linkHome ? (
         <a className="brand" href={up}>
           {brand}
         </a>
