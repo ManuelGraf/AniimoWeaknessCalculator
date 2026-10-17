@@ -16,13 +16,16 @@ import { searchRoster } from '../lib/data';
 import {
   attackRole,
   countedSkills,
-  MAIN_MOVE_MIN_POWER,
+  coveragePicks,
+  OUTSTANDING_POWER,
   teamDefence,
   teamIds,
   teamOffence,
+  threatPicks,
   type DefenceRow,
   type Hit,
   type OffenceRow,
+  type Pick,
   type Team,
 } from '../lib/team';
 import { ELEMENTS, type Aniimo, type Element } from '../types';
@@ -91,7 +94,17 @@ export function TeamBuilder({
     () => teamOffence(chart, team, includeSupports, allMoves),
     [chart, team, includeSupports, allMoves],
   );
+  // Same switches as the offence panel, so a suggestion is always something it would count.
+  const threats = useMemo(
+    () => threatPicks(roster, team, defence, includeSupports, allMoves),
+    [roster, team, defence, includeSupports, allMoves],
+  );
+  const fillers = useMemo(
+    () => coveragePicks(chart, roster, team, offence, includeSupports, allMoves),
+    [chart, roster, team, offence, includeSupports, allMoves],
+  );
   const members = team.filter((a): a is Aniimo => !!a);
+  const emptySlot = team.findIndex((a) => !a);
   const byId = useMemo(() => new Map(roster.map((a) => [a.id, a])), [roster]);
 
   // A tap anywhere else closes a pinned tooltip.
@@ -340,13 +353,79 @@ export function TeamBuilder({
               <span className="team-switch__text">
                 <span className="team-switch__label">Include all attacking moves for DPS and Break</span>
                 <span className="team-switch__hint">
-                  Off by default — only basic ATK, the Ultimate and strong Combat moves count. Dashes, glides and light
-                  filler skills are left out.
+                  Off by default — only an Aniimo's core element counts, plus other-element moves of{' '}
+                  {OUTSTANDING_POWER}+ might that are not dashes or glides. On, every move with might counts, however
+                  weak.
                 </span>
               </span>
             </button>
           </section>
         </div>
+
+        {members.length > 0 && (
+          <div className="team-panels team-recs">
+            <section className="team-panel" data-verdict="bad" aria-labelledby="team-threat-title">
+              <PanelHead
+                icon="target"
+                eyebrow="Counters · what beats this team"
+                title={threats.length ? 'Bring these against it' : 'No element hits this team hard'}
+                id="team-threat-title"
+              />
+              {threats.length ? (
+                threats.map((t) => (
+                  <div key={t.element} className="team-recs__group">
+                    <div className="team-recs__why">
+                      <ElPlate element={t.element} size="xxs" />
+                      <span>
+                        {t.element} · {t.score >= 2 ? 'threatens the team' : 'its sorest spot'}
+                      </span>
+                    </div>
+                    <ul className="team-recs__list">
+                      {t.picks.map((p) => (
+                        <RecCard key={p.aniimo.id} pick={p} />
+                      ))}
+                      {!t.picks.length && (
+                        <li className="team-recs__none">
+                          No {includeSupports ? 'Aniimo' : 'DPS or Break'} with a counted {t.element} move.
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                ))
+              ) : (
+                <p className="team-recs__empty">Nothing scores above neutral against every member — no single element to lean on.</p>
+              )}
+            </section>
+
+            <section className="team-panel" data-verdict="good" aria-labelledby="team-fill-title">
+              <PanelHead
+                icon="plus"
+                eyebrow="Coverage · fill the gaps"
+                title={fillers.length ? 'These hit what your attackers cannot' : 'Nothing left to cover'}
+                id="team-fill-title"
+              />
+              {fillers.length ? (
+                <ul className="team-recs__list team-recs__group">
+                  {fillers.map((p) => (
+                    <RecCard
+                      key={p.aniimo.id}
+                      pick={p}
+                      covers
+                      onAdd={emptySlot >= 0 ? () => setSlot(emptySlot, p.aniimo) : undefined}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <p className="team-recs__empty">Every element is already hit super effectively.</p>
+              )}
+              {fillers.length > 0 && (
+                <p className="team-recs__hint">
+                  {emptySlot >= 0 ? 'Tap one to drop it into the next free slot.' : 'Team is full — clear a slot to add one.'}
+                </p>
+              )}
+            </section>
+          </div>
+        )}
 
         <div className="team-foot">
           <div className="team-legend">
@@ -372,10 +451,11 @@ export function TeamBuilder({
       </section>
 
       <p className="note team-explainer">
-        Offence counts DPS and Break Aniimo by default, using their main damage moves: basic ATK, the Ultimate and Combat
-        skills with at least {MAIN_MOVE_MIN_POWER} might that are not dashes, glides, charges or dodges — so a Fire DPS
-        with a heavy Earth move counts as Earth coverage, but Stellarys' Chill Glide does not count as Ice. Flip the
-        switches to include supports or every attacking move. Dual-element defenders multiply
+        Offence counts DPS and Break Aniimo by default, and only the elements they are built around: their core
+        element — the element of their basic ATK and Ultimate — plus any other element they have an outstanding move
+        of, at least {OUTSTANDING_POWER} might and not a dash, glide or dodge. So Thunderstorm Scorchhowl, Fire and
+        Lightning, counts as Fire only, while Thornblade's 75-might Aqua Defense adds Water to a Grass DPS. Flip the
+        switches to include supports or every attacking move, whatever its might. Dual-element defenders multiply
         both sides: 1.6 × 1.6 = 2.56×, and a resistance can cancel a weakness out to 1×.
       </p>
     </div>
@@ -400,6 +480,19 @@ const PANEL_ICON = {
       <path d="M14 4h6v6" />
       <path d="m20 4-6 6" />
       <path d="M6.5 14.5 9.5 17.5" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+    </>
+  ),
+  plus: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 8v8M8 12h8" />
     </>
   ),
 };
@@ -590,6 +683,41 @@ function Picker({
         {!all.length && <li className="team-picker__empty">No Aniimo matches that.</li>}
       </ul>
     </div>
+  );
+}
+
+/** A suggested Aniimo: face, name, role and the elements it answers. Addable when `onAdd` is given. */
+function RecCard({ pick, covers, onAdd }: { pick: Pick; covers?: boolean; onAdd?: () => void }) {
+  const a = pick.aniimo;
+  const role = attackRole(a) ?? a.roles[0];
+  const detail = pick.move ? `${pick.move.name} · ${pick.move.power} might` : subtitle(a);
+  const body = (
+    <>
+      <span className="team-face--md team-rec__face" data-el={slug(a.elements[0]!)}>
+        <Face aniimo={a} lazy />
+      </span>
+      <span className="team-picker__label">
+        <span className="team-picker__name">{a.name}</span>
+        <span className="team-picker__sub">{role ? `${roleLabel(role)} · ${detail}` : detail}</span>
+      </span>
+      <span className="team-recs__els" aria-label={covers ? `Covers ${pick.elements.join(', ')}` : `Types: ${a.elements.join(', ')}`}>
+        {covers && <span className="team-recs__vs">vs</span>}
+        {(covers ? pick.elements : a.elements).map((el) => (
+          <ElPlate key={el} element={el} size="xxs" />
+        ))}
+      </span>
+    </>
+  );
+  return (
+    <li className="team-rec">
+      {onAdd ? (
+        <button type="button" className="team-rec__btn" onClick={onAdd} title={`Add ${a.name} to the team`}>
+          {body}
+        </button>
+      ) : (
+        <div className="team-rec__btn">{body}</div>
+      )}
+    </li>
   );
 }
 

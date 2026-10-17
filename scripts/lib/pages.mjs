@@ -793,20 +793,24 @@ ${faqSection(q)}
 
 /**
  * Who counts as coverage in the team builder: DPS and Break forms, through
- * their main damage moves - Innate (basic ATK, Ultimate) and Combat skills
- * with real might that are not dashes, glides or dodges. Mirrors attackRole(),
- * isMainMove() and countedSkills() in src/lib/team.ts.
+ * their core element - that of their Innate skills, basic ATK and the
+ * Ultimate - plus outstanding moves of other elements: 70+ might and not a
+ * dash, glide or dodge. Mirrors attackRole(), coreElements(), isMainMove()
+ * and countedSkills() in src/lib/team.ts.
  */
 const isAttacker = (a) => a.roles.some((r) => /^(dps|break)$/i.test(r));
-const MAIN_MOVE_MIN_POWER = 40;
+const OUTSTANDING_POWER = 70;
 const MOBILITY =
-  /(glide|dash)|^(flies|dashes (at|toward)|charges (at|toward)|rush(es)? toward|quickly charges|tackles the target|curls into a ball and dashes|quickly leaps up with brief invincible|jumps up to dodge|moves back|immediately breaks free|transforms into a ball|rolls continuously)/i;
-const isMainMove = (s) =>
-  s.section === 'Innate' || ((s.power ?? 0) >= MAIN_MOVE_MIN_POWER && !MOBILITY.test(s.name) && !MOBILITY.test(s.description));
+  /(glide|dash)|^(flies|dashes (at|toward)|charges (at|toward)|rush(es)? toward|quickly charges|tackles the target|curls into a ball and dashes|quickly leaps up with brief invincible|jumps up to dodge|moves back|immediately breaks free|transforms into a ball|rolls continuously)/i;
 const damagingSkills = (a) => {
   const all = a.skills.filter((s) => s.offensive && s.element && (s.power ?? 0) > 0);
-  const main = all.filter(isMainMove);
-  return main.length ? main : all;
+  const innate = all.filter((s) => s.section === 'Innate');
+  const core = innate.length ? innate.map((s) => s.element) : a.elements;
+  return all.filter(
+    (s) =>
+      core.includes(s.element) ||
+      ((s.power ?? 0) >= OUTSTANDING_POWER && !MOBILITY.test(s.name) && !MOBILITY.test(s.description)),
+  );
 };
 
 /** The design's sample team, minus anyone a later sync has dropped. */
@@ -872,7 +876,7 @@ export function teamPage({ chart, roster, meta, up }) {
     },
     {
       q: 'What counts as offensive coverage in the team builder?',
-      a: `Only DPS and Break Aniimo count by default, and only through their main damage moves: basic ATK, the Ultimate, and Combat skills with at least ${MAIN_MOVE_MIN_POWER} might that are not dashes, glides, charges or dodges. An Aniimo attacks with its moves, not its typing, so a Fire DPS with a heavy Earth move counts as Earth coverage. A switch counts every attacking move instead. Moves with no power, such as heals and buffs, never count.`,
+      a: `Only DPS and Break Aniimo count by default, and only for the elements they are built around: their core element, which is the element of their basic ATK and Ultimate, plus any other element they have an outstanding move of: at least ${OUTSTANDING_POWER} might and not a dash, glide, charge or dodge. A dual-type Aniimo whose basic ATK and Ultimate are Fire counts as Fire only, unless it carries a heavy move of its second element. A switch counts every attacking move instead, whatever its might. Moves with no power, such as heals and buffs, never count.`,
     },
     {
       q: 'Why do Support, Heal and Regen Aniimo not count towards coverage?',
@@ -897,8 +901,9 @@ effectively — before you commit to it.</p>
 <p><strong>Defence scores each element against the whole team.</strong> Every member it hits for 1.6× adds one,
 a 2.56× hit on a dual-element member adds two, and every resist takes the same off. Two or more and that element
 threatens the team.</p>
-<p><strong>Offence counts what your DPS and Break Aniimo can actually hit</strong>, using their main damage moves
-— basic ATK, the Ultimate and strong Combat skills, not dashes or glides — rather than their own typing.</p>
+<p><strong>Offence counts what your DPS and Break Aniimo are built to hit</strong>: their core element — the
+element of their basic ATK and Ultimate — plus any other element they carry a ${OUTSTANDING_POWER}+ might move of,
+not counting dashes or glides.</p>
 <p>Dual-element defenders multiply both sides, so 1.6 × 1.6 = 2.56×, and a resistance can cancel a weakness out to 1×.</p>
 </div>
 

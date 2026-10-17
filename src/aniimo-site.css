@@ -1305,6 +1305,37 @@ body { position: relative; }
 
 .team-explainer { font-size: 13px; max-width: 720px; text-wrap: pretty; margin: 0; }
 
+/* ---------------------------------------------------------------- picks */
+
+/* Below the coverage panels: who beats this team, and who would round it out. */
+.team-recs { padding-top: 0; }
+.team-recs__group { padding: 14px 20px 4px; }
+.team-recs__group + .team-recs__group { padding-top: 6px; }
+.team-recs__why {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-dim);
+}
+.team-recs__list {
+  list-style: none; margin: 0;
+  display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+}
+ul.team-recs__group { padding-bottom: 14px; }
+.team-rec__btn {
+  appearance: none; width: 100%; text-align: left; font: inherit; color: inherit;
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035); border: 1px solid var(--line);
+}
+button.team-rec__btn { cursor: pointer; transition: background 140ms ease, border-color 140ms ease; }
+button.team-rec__btn:hover { background: rgb(var(--v-rgb) / 0.10); border-color: rgb(var(--v-rgb) / 0.45); }
+.team-rec__face { border-color: rgb(var(--el-rgb) / 0.6); }
+.team-recs__els { display: flex; align-items: center; gap: 3px; flex-shrink: 0; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; max-width: 50%; }
+.team-recs__vs { font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-mute); margin-right: 2px; }
+.team-recs__none,
+.team-recs__empty,
+.team-recs__hint { font-size: 12.5px; color: var(--text-mute); }
+.team-recs__empty { margin: 0; padding: 16px 20px 20px; }
+.team-recs__hint { margin: 0; padding: 0 20px 16px; color: var(--text-faint); }
+
 @media (max-width: 560px) {
   .team-slots { grid-template-columns: 1fr; gap: 8px; }
   .team-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1324,6 +1355,8 @@ body { position: relative; }
   .team-axis__bucket { padding-inline: 2px; }
   .team-axis__label { font-size: 9px; letter-spacing: 0.04em; white-space: normal; text-align: center; }
   .team-top__actions { margin-left: 0; }
+  .team-recs__group { padding-inline: 12px; }
+  .team-recs__empty, .team-recs__hint { padding-inline: 12px; }
 }
 
 /* Four view tabs and the brand do not fit a phone's width. The wordmark goes
