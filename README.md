@@ -73,6 +73,41 @@ go. The layout follows the community chart by
 [u/88IllusionllI88](https://www.reddit.com/user/88IllusionllI88/); see [GRAPH.md](GRAPH.md) for why it is
 placed by hand. "See what hits X hardest" reads that element in the picker above.
 
+**Team builder** — up to four Aniimo, scored as a team. The maths is
+[`src/lib/team.ts`](src/lib/team.ts) (pure, like `chart.ts`); the UI is
+[`TeamBuilder.tsx`](src/components/TeamBuilder.tsx). The team lives in the hash
+(`#/team/glacy+_+hexxin`, `_` = empty slot); only saved teams go to `localStorage`.
+
+- *Defence* scores each attacking element against the whole team: +1 per member it hits for 1.6×,
+  +2 for a 2.56× hit, and the same subtracted per resist. A score of 2 or more is a threat.
+- *Offence* is the best multiplier the team's attackers land on each defending element. By default
+  only **DPS and Break** forms count, and only for the elements they are **built around**:
+  - their **core element** — the element of their Innate skills (basic ATK and the Ultimate),
+    `coreElements()`. The data has no "core skill" flag; Innate is the proxy. It is always one of
+    the form's own types, and on a dual type usually only one (Thunderstorm Scorchhowl, Fire/Lightning,
+    counts as Fire only). The ~20 guide-only forms with no moves fall back to their typing;
+  - plus any other element they have an **outstanding** move of: `OUTSTANDING_POWER` (70) might or
+    more and not a dash, glide or dodge (`isMobilityMove()`), so Thornblade's 75-might Water move
+    counts but Stellarys' 74-might Chill Glide does not.
+
+  Two switches widen this: *Include Support, Heal & Regen* counts every role, and *Include all
+  attacking moves* counts every move with might, however weak or mobile. Moves without might
+  (heals, buffs, shields — even element-tagged ones) never count. Near misses worth knowing if the
+  threshold is ever tuned: Inferlupa's Crossfire (Fire, 65) and Budclaw/Shrubclaw's Verdant Beam
+  (Grass, 67) fall just under it.
+- *Recommendations*, below the two panels, apply exactly the same rules and switches.
+  **Counters** (`threatPicks()`): for the elements the team is weakest to, attackers that hit that
+  element with a counted move — forms of that element first, then by the move's might.
+  **Fill the gaps** (`coveragePicks()`): attackers whose counted elements land super effectively on
+  what the team cannot, ranked by gaps closed (resisted ones first); tapping one fills the next free
+  slot. Both list one form per species and skip species already on the team.
+
+This is deliberately stricter than an Aniimo's own page, which scores *every* move it has: there the
+question is "what is its best hit", here it is "what is this team built to cover". The static
+`/team/` page restates the rule in plain JS (`damagingSkills()` in
+[`scripts/lib/pages.mjs`](scripts/lib/pages.mjs)) for its counters table and FAQ — change both
+together.
+
 State lives in the URL hash (`#/aniimo`, `#/aniimo/glacy`, `#/defense/water+ice`), so any
 result can be linked. A hash is used rather than paths because GitHub Pages serves no SPA fallback.
 The same lookups also exist as real pages (`/aniimo/`, `/aniimo/glacy/`, `/element/water-ice/`)
@@ -200,12 +235,18 @@ aniimoguide. Every entry has both, and the test suite asserts they are still ima
 npm test
 ```
 
-Seven suites, no fixtures — they run against the real committed data:
+Nine suites. The hand-kept element chart is read live; the scraped roster is read from a frozen copy
+in `test/fixtures/`, so a weekly data refresh never breaks a test (refresh it on purpose with
+`npm run fixtures`):
 
 - `src/lib/chart.test.ts` — matchup maths, including a 729-case check that dual-element order never
   changes the result, and aniimoguide's two published examples.
 - `src/lib/data.test.ts` — database integrity. Every Aniimo has 1–2 known elements, every offensive
   skill has a valid element, and off-element moves survive the merge. This is what catches a bad scrape.
+- `src/lib/team.test.ts` — team scoring on synthetic forms worked out by hand: defence scores, the
+  core-element / outstanding-move rule and both switches, benched supports and minor moves, the
+  recommendations, and share-link round trips.
+- `scripts/lib/merge.test.ts` — the aniimoguide fallback rebuilds the committed roster exactly.
 - `src/App.test.tsx` — renders the app against the real data: search, routing to a form's own page,
   deep links, the roster grid, the chart, and the handover from a prerendered page.
 - `src/components/AniimoDetail.test.tsx` — the move scoring behind that page: STAB, dual targets,
@@ -237,6 +278,7 @@ every lookup the tool supports:
 /element/fire-earth/       ×36  dual pairings (the 9 no Aniimo has are noindex)
 /aniimo/                   every form as a tile, and every form's weakness in one table
 /aniimo/glacy/             ×226 matchup table, move coverage, stats, habitats
+/team/                     team builder; statically, the best counters per element and how teams are scored
 404.html, robots.txt, sitemap.xml, llms.txt
 ```
 
@@ -312,8 +354,10 @@ src/
   lib/chart.ts        matchup maths (no React, no DOM)
   lib/data.ts         loading, search ranking
   lib/graph.ts        the element graph's layout and geometry (no React, no DOM)
+  lib/team.ts         team defence / offence scoring and recommendations (no React, no DOM)
   lib/useHashRoute.ts URL state
-  components/         combobox, roster grid, one Aniimo's page, defence, chart, element graph
+  components/         combobox, roster grid, one Aniimo's page, defence, chart, element graph,
+                      team builder
 scripts/
   sync.mjs            orchestrates a refresh, validates, writes
   lib/wiki.mjs        official wiki  (Nuxt payloads)
