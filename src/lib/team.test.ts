@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { dataFile } from '../../test/data';
 import type { Aniimo, ChartData, Element } from '../types';
 import { createChart } from './chart';
-import { attackElements, attackRole, teamDefence, teamFrom, teamIds, teamOffence, type Team } from './team';
+import { attackElements, attackRole, isMainMove, teamDefence, teamFrom, teamIds, teamOffence, type Team } from './team';
 import { formatHash, parseHash } from './useHashRoute';
 
 const chart = createChart(JSON.parse(dataFile('elements.json')) as ChartData);
@@ -123,6 +123,50 @@ describe('teamOffence', () => {
     expect(off.gaps).toContain('Water');
     expect(row(off.rows, 'Water').hitters).toEqual([]);
     expect(attackRole(a)).toBe('break');
+  });
+});
+
+describe('main moves', () => {
+  /** A Stellarys-like Dark DPS: Dark ATK and Ultimate, an Ice glide, a light Water filler. */
+  const skill = (name: string, element: Element, power: number, section: 'Combat' | 'Innate', description = '') => ({
+    name,
+    description,
+    section,
+    element,
+    power,
+    cost: null,
+    offensive: true,
+    source: 'wiki' as const,
+  });
+  const glider: Aniimo = {
+    ...mon('glider', ['Dark'], ['dps']),
+    skills: [
+      skill('ATK', 'Dark', 6, 'Innate'),
+      skill('Comet Aureus', 'Dark', 166, 'Innate'),
+      skill('Chill Glide', 'Ice', 74, 'Combat', 'Flies while dropping Ice element stars to attack the target.'),
+      skill('Water Bolt', 'Water', 30, 'Combat'),
+    ],
+  };
+
+  test('ATK, Ultimate and strong Combat moves count; dashes, glides and filler do not', () => {
+    expect(glider.skills.map(isMainMove)).toEqual([true, true, false, false]);
+    expect(isMainMove(skill('Water Dash', 'Water', 74, 'Combat', 'Dashes at the target, dealing damage.'))).toBe(false);
+    expect(isMainMove(skill('Lava Punch', 'Fire', 64, 'Combat', 'Dashes forward with a punch, piercing targets.'))).toBe(true);
+    expect(attackElements(glider)).toEqual(['Dark']);
+    expect(attackElements(glider, true)).toEqual(['Dark', 'Ice', 'Water']);
+  });
+
+  test('a minor-move-only hit is benched until all moves are switched on', () => {
+    // Ice hits Water for 1.6x; Dark does not, and the Water filler is resisted.
+    const water = row(teamOffence(chart, [glider, null, null, null]).rows, 'Water');
+    expect(water.verdict).not.toBe('good');
+    expect(water.benched.map((h) => [h.aniimo.id, h.element, h.benchedFor])).toEqual([['glider', 'Ice', 'move']]);
+    expect(water.note).toBe('Only minor moves hit this');
+
+    const all = row(teamOffence(chart, [glider, null, null, null], false, true).rows, 'Water');
+    expect(all.verdict).toBe('good');
+    expect(all.hitters.map((h) => h.element)).toEqual(['Ice']);
+    expect(all.benched).toEqual([]);
   });
 });
 

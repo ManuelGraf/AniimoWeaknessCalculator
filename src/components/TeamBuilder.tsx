@@ -15,7 +15,8 @@ import { formatMultiplier, verdict, type Chart } from '../lib/chart';
 import { searchRoster } from '../lib/data';
 import {
   attackRole,
-  damagingSkills,
+  countedSkills,
+  MAIN_MOVE_MIN_POWER,
   teamDefence,
   teamIds,
   teamOffence,
@@ -77,6 +78,7 @@ export function TeamBuilder({
   const [saved, setSaved] = useState<SavedTeam[]>(readSaved);
   const [copied, setCopied] = useState(false);
   const [includeSupports, setIncludeSupports] = useState(false);
+  const [allMoves, setAllMoves] = useState(false);
   // One highlight per panel: pinned by click, previewed by hover.
   const [pinned, setPinned] = useState<Record<DefenceAxis, string | null>>({ def: null, off: null });
   const [hover, setHover] = useState<string | null>(null);
@@ -85,7 +87,10 @@ export function TeamBuilder({
   const [tipHover, setTipHover] = useState<string | null>(null);
 
   const defence = useMemo(() => teamDefence(chart, team), [chart, team]);
-  const offence = useMemo(() => teamOffence(chart, team, includeSupports), [chart, team, includeSupports]);
+  const offence = useMemo(
+    () => teamOffence(chart, team, includeSupports, allMoves),
+    [chart, team, includeSupports, allMoves],
+  );
   const members = team.filter((a): a is Aniimo => !!a);
   const byId = useMemo(() => new Map(roster.map((a) => [a.id, a])), [roster]);
 
@@ -300,7 +305,7 @@ export function TeamBuilder({
                   key={row.element}
                   row={row}
                   dim={dimmed('off', row.band)}
-                  includeSupports={includeSupports}
+                  allMoves={allMoves}
                   tipProps={tipProps}
                 />
               ))}
@@ -319,6 +324,24 @@ export function TeamBuilder({
                 <span className="team-switch__label">Include Support, Heal &amp; Regen Aniimo</span>
                 <span className="team-switch__hint">
                   Off by default — only DPS and Break are meant to land the hit. Moves without might never count.
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="switch"
+              className="team-switch"
+              aria-checked={allMoves}
+              onClick={() => setAllMoves(!allMoves)}
+            >
+              <span className="team-switch__track" aria-hidden="true">
+                <span className="team-switch__knob" />
+              </span>
+              <span className="team-switch__text">
+                <span className="team-switch__label">Include all attacking moves for DPS and Break</span>
+                <span className="team-switch__hint">
+                  Off by default — only basic ATK, the Ultimate and strong Combat moves count. Dashes, glides and light
+                  filler skills are left out.
                 </span>
               </span>
             </button>
@@ -349,8 +372,10 @@ export function TeamBuilder({
       </section>
 
       <p className="note team-explainer">
-        Offence counts DPS and Break Aniimo by default, using their element-tagged skills with might — so a Fire DPS with
-        an Earth move counts as Earth coverage. Flip the switch to include supports too. Dual-element defenders multiply
+        Offence counts DPS and Break Aniimo by default, using their main damage moves: basic ATK, the Ultimate and Combat
+        skills with at least {MAIN_MOVE_MIN_POWER} might that are not dashes, glides, charges or dodges — so a Fire DPS
+        with a heavy Earth move counts as Earth coverage, but Stellarys' Chill Glide does not count as Ice. Flip the
+        switches to include supports or every attacking move. Dual-element defenders multiply
         both sides: 1.6 × 1.6 = 2.56×, and a resistance can cancel a weakness out to 1×.
       </p>
     </div>
@@ -654,12 +679,12 @@ function DefenceTile({ chart, row, dim, tipProps }: { chart: Chart; row: Defence
 function OffenceTile({
   row,
   dim,
-  includeSupports,
+  allMoves,
   tipProps,
 }: {
   row: OffenceRow;
   dim: boolean;
-  includeSupports: boolean;
+  allMoves: boolean;
   tipProps: TipProps;
 }) {
   const shown: Hit[] = [...row.hitters, ...row.benched].slice(0, 4);
@@ -673,9 +698,10 @@ function OffenceTile({
       <div className="team-tile__faces">
         {shown.map((h) => {
           const a = h.aniimo;
-          const counted = !!h.role || (includeSupports && row.hitters.includes(h));
+          const counted = row.hitters.includes(h);
           const t = tipProps(`off:${row.element}/${a.id}`);
-          const moves = damagingSkills(a)
+          // A hit benched for its move lists that minor move, so it is clear what was left out.
+          const moves = countedSkills(a, allMoves || h.benchedFor === 'move')
             .filter((s) => s.element === h.element)
             .sort((x, y) => (y.power ?? 0) - (x.power ?? 0));
           const role = attackRole(a);
@@ -686,7 +712,7 @@ function OffenceTile({
                 className="team-face"
                 data-role={role ?? undefined}
                 data-benched={!counted || undefined}
-                aria-label={`${a.name}${role ? ` (${roleLabel(role)})` : counted ? '' : ' (support, not counted)'}: ${formatMultiplier(h.multiplier)} vs ${row.element}`}
+                aria-label={`${a.name}${role ? ` (${roleLabel(role)})` : ''}${h.benchedFor === 'role' ? ' (support, not counted)' : h.benchedFor === 'move' ? ' (minor move only, not counted)' : ''}: ${formatMultiplier(h.multiplier)} vs ${row.element}`}
                 aria-expanded={t.open}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -726,7 +752,8 @@ function OffenceTile({
                   ))}
                   <div className="team-tip__foot">
                     {formatMultiplier(h.multiplier)} vs {row.element}
-                    {counted ? '' : ' · support role, not counted as coverage'}
+                    {h.benchedFor === 'role' && ' · support role, not counted as coverage'}
+                    {h.benchedFor === 'move' && ' · minor move only, not counted as coverage'}
                   </div>
                 </div>
               )}

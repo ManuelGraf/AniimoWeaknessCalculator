@@ -1275,6 +1275,8 @@ body { position: relative; }
   transition: left 140ms ease;
 }
 .team-switch[aria-checked="true"] .team-switch__knob { left: 20px; }
+/* Stacked switches read as one group. */
+.team-switch + .team-switch { margin-top: -8px; }
 .team-switch__text { display: flex; flex-direction: column; line-height: 1.3; }
 .team-switch__label { font-size: 13px; font-weight: 600; color: var(--text); }
 .team-switch__hint { font-size: 11.5px; color: var(--text-mute); }

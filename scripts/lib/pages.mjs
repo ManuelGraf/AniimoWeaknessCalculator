@@ -793,11 +793,21 @@ ${faqSection(q)}
 
 /**
  * Who counts as coverage in the team builder: DPS and Break forms, through
- * their element-tagged moves with might. Mirrors attackRole() and
- * damagingSkills() in src/lib/team.ts.
+ * their main damage moves - Innate (basic ATK, Ultimate) and Combat skills
+ * with real might that are not dashes, glides or dodges. Mirrors attackRole(),
+ * isMainMove() and countedSkills() in src/lib/team.ts.
  */
 const isAttacker = (a) => a.roles.some((r) => /^(dps|break)$/i.test(r));
-const damagingSkills = (a) => a.skills.filter((s) => s.offensive && s.element && (s.power ?? 0) > 0);
+const MAIN_MOVE_MIN_POWER = 40;
+const MOBILITY =
+  /(glide|dash)|^(flies|dashes (at|toward)|charges (at|toward)|rush(es)? toward|quickly charges|tackles the target|curls into a ball and dashes|quickly leaps up with brief invincible|jumps up to dodge|moves back|immediately breaks free|transforms into a ball|rolls continuously)/i;
+const isMainMove = (s) =>
+  s.section === 'Innate' || ((s.power ?? 0) >= MAIN_MOVE_MIN_POWER && !MOBILITY.test(s.name) && !MOBILITY.test(s.description));
+const damagingSkills = (a) => {
+  const all = a.skills.filter((s) => s.offensive && s.element && (s.power ?? 0) > 0);
+  const main = all.filter(isMainMove);
+  return main.length ? main : all;
+};
 
 /** The design's sample team, minus anyone a later sync has dropped. */
 const EXAMPLE_TEAM = ['glacy', 'hexxin', 'magmarex', 'emberpup'];
@@ -862,7 +872,7 @@ export function teamPage({ chart, roster, meta, up }) {
     },
     {
       q: 'What counts as offensive coverage in the team builder?',
-      a: 'Only DPS and Break Aniimo count by default, and only through their element-tagged moves with might. An Aniimo attacks with its moves, not its typing, so a Fire DPS with an Earth move counts as Earth coverage. Moves with no power, such as heals and buffs, never count.',
+      a: `Only DPS and Break Aniimo count by default, and only through their main damage moves: basic ATK, the Ultimate, and Combat skills with at least ${MAIN_MOVE_MIN_POWER} might that are not dashes, glides, charges or dodges. An Aniimo attacks with its moves, not its typing, so a Fire DPS with a heavy Earth move counts as Earth coverage. A switch counts every attacking move instead. Moves with no power, such as heals and buffs, never count.`,
     },
     {
       q: 'Why do Support, Heal and Regen Aniimo not count towards coverage?',
@@ -874,7 +884,7 @@ export function teamPage({ chart, roster, meta, up }) {
     },
     {
       q: `Which element is hardest to cover in Aniimo?`,
-      a: `${thinnest.el}. Only ${thinnest.list.length} of the ${attackers.length} DPS and Break forms carry a ${list(thinnest.by, 'or')} move with might, which is what it takes to hit ${thinnest.el} for 1.6x.`,
+      a: `${thinnest.el}. Only ${thinnest.list.length} of the ${attackers.length} DPS and Break forms carry a main ${list(thinnest.by, 'or')} damage move, which is what it takes to hit ${thinnest.el} for 1.6x.`,
     },
   ]);
 
@@ -887,8 +897,8 @@ effectively — before you commit to it.</p>
 <p><strong>Defence scores each element against the whole team.</strong> Every member it hits for 1.6× adds one,
 a 2.56× hit on a dual-element member adds two, and every resist takes the same off. Two or more and that element
 threatens the team.</p>
-<p><strong>Offence counts what your DPS and Break Aniimo can actually hit</strong>, using their element-tagged moves
-with might rather than their own typing.</p>
+<p><strong>Offence counts what your DPS and Break Aniimo can actually hit</strong>, using their main damage moves
+— basic ATK, the Ultimate and strong Combat skills, not dashes or glides — rather than their own typing.</p>
 <p>Dual-element defenders multiply both sides, so 1.6 × 1.6 = 2.56×, and a resistance can cancel a weakness out to 1×.</p>
 </div>
 

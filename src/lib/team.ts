@@ -5,11 +5,12 @@
  * element does to every member, rolled into one score per element. Offence:
  * the best hit the team's damage dealers can land on each defending element.
  *
- * Offence only counts DPS and Break forms by default, and only their
- * element-tagged moves with might. A healer's super-effective poke is not
- * coverage anyone builds a team around, and a buff with no power deals nothing
- * whatever its element. Mirrored by teamFacts() in scripts/lib/pages.mjs for
- * the static team page's prose.
+ * Offence only counts DPS and Break forms by default, and only their main
+ * damage moves: basic ATK, the Ultimate and the heavier Combat skills. A
+ * healer's super-effective poke is not coverage anyone builds a team around,
+ * nor is Stellarys' Chill Glide, which exists to get somewhere. A buff with no
+ * power deals nothing whatever its element. Mirrored by teamPage() in
+ * scripts/lib/pages.mjs for the static team page's prose.
  */
 import type { Aniimo, Element, Skill } from '../types';
 import { round, type Chart, type Verdict } from './chart';
@@ -34,12 +35,45 @@ export function attackRole(a: Aniimo): AttackRole | null {
 export const damagingSkills = (a: Aniimo): Skill[] =>
   a.skills.filter((s) => s.offensive && s.element && (s.power ?? 0) > 0);
 
+/** Below this a Combat skill is filler: a 30-might bolt is not what a DPS rotates on. */
+export const MAIN_MOVE_MIN_POWER = 40;
+
+/**
+ * Combat skills that are movement first and damage second: glides, dashes and
+ * charges at the target, dodge-leaps, retreats and roll-around forms. Matched
+ * against the name and the start of the description, where the wiki says what
+ * the move does before what it adds.
+ */
+const MOBILITY =
+  /(glide|dash)|^(flies|dashes (at|toward)|charges (at|toward)|rush(es)? toward|quickly charges|tackles the target|curls into a ball and dashes|quickly leaps up with brief invincible|jumps up to dodge|moves back|immediately breaks free|transforms into a ball|rolls continuously)/i;
+
+export const isMobilityMove = (s: Skill): boolean => MOBILITY.test(s.name) || MOBILITY.test(s.description);
+
+/**
+ * A move a damage dealer actually leans on: Innate (basic ATK and the
+ * Ultimate) always, Combat only with real might and not a mobility skill.
+ */
+export const isMainMove = (s: Skill): boolean =>
+  s.section === 'Innate' || ((s.power ?? 0) >= MAIN_MOVE_MIN_POWER && !isMobilityMove(s));
+
+/**
+ * The damaging moves that count for coverage. Main moves only by default, so
+ * a dash's element does not pass for coverage; every damaging move with
+ * `allMoves`. Falls back to every damaging move when none is a main one.
+ */
+export function countedSkills(a: Aniimo, allMoves = false): Skill[] {
+  const all = damagingSkills(a);
+  if (allMoves) return all;
+  const main = all.filter(isMainMove);
+  return main.length ? main : all;
+}
+
 /**
  * The elements an Aniimo can actually hit with. Falls back to its own typing
  * when the source lists no damaging move, rather than leaving it with none.
  */
-export function attackElements(a: Aniimo): Element[] {
-  const els = [...new Set(damagingSkills(a).map((s) => s.element!))];
+export function attackElements(a: Aniimo, allMoves = false): Element[] {
+  const els = [...new Set(countedSkills(a, allMoves).map((s) => s.element!))];
   return els.length ? els : a.elements;
 }
 
@@ -136,6 +170,11 @@ export interface Hit {
   element: Element;
   multiplier: number;
   role: AttackRole | null;
+  /**
+   * Why a benched hit does not count: a support's role, or a damage dealer
+   * that only lands it with a minor move (a dash, a glide, a 30-might filler).
+   */
+  benchedFor?: 'role' | 'move';
 }
 
 /** The three buckets on the offence axis. Positive = lands more. */
@@ -154,8 +193,9 @@ export interface OffenceRow {
   /** One entry per counted attacker that reaches `best`; empty unless that is super effective. */
   hitters: Hit[];
   /**
-   * Members left out of the count that do have a super-effective move here.
-   * Shown dimmed, so it is clear why they do not count.
+   * Members left out of the count that do have a super-effective move here:
+   * supports, and damage dealers whose only such move is a minor one. Shown
+   * dimmed, so it is clear why they do not count.
    */
   benched: Hit[];
   label: string;
@@ -171,7 +211,7 @@ export interface Offence {
   headline: string;
 }
 
-export function teamOffence(chart: Chart, team: Team, includeSupports = false): Offence {
+export function teamOffence(chart: Chart, team: Team, includeSupports = false, allMoves = false): Offence {
   const members = team.filter((a): a is Aniimo => !!a);
   const attackers = includeSupports ? members : members.filter((a) => attackRole(a));
   const bench = includeSupports ? [] : members.filter((a) => !attackRole(a));
@@ -182,7 +222,7 @@ export function teamOffence(chart: Chart, team: Team, includeSupports = false): 
     let best = 0;
     let hitters: Hit[] = [];
     for (const a of attackers) {
-      for (const mv of attackElements(a)) {
+      for (const mv of attackElements(a, allMoves)) {
         const m = round(chart.pair(mv, element));
         const hit = { aniimo: a, element: mv, multiplier: m, role: attackRole(a) };
         if (m > best) {
@@ -194,10 +234,25 @@ export function teamOffence(chart: Chart, team: Team, includeSupports = false): 
       }
     }
 
-    const benched = bench.flatMap((a) => {
-      const mv = attackElements(a).find((e) => round(chart.pair(e, element)) > 1);
-      return mv ? [{ aniimo: a, element: mv, multiplier: round(chart.pair(mv, element)), role: null }] : [];
-    });
+    const superEffective = (els: Element[]) => els.find((e) => round(chart.pair(e, element)) > 1);
+    const benched: Hit[] = [
+      ...bench.flatMap((a) => {
+        const mv = superEffective(attackElements(a, allMoves));
+        return mv
+          ? [{ aniimo: a, element: mv, multiplier: round(chart.pair(mv, element)), role: null, benchedFor: 'role' as const }]
+          : [];
+      }),
+      // A damage dealer whose super-effective move is only a minor one: there,
+      // but not something it is built to land.
+      ...(allMoves ? [] : attackers).flatMap((a) => {
+        if (superEffective(attackElements(a))) return [];
+        const mv = superEffective(attackElements(a, true));
+        return mv
+          ? [{ aniimo: a, element: mv, multiplier: round(chart.pair(mv, element)), role: attackRole(a), benchedFor: 'move' as const }]
+          : [];
+      }),
+    ];
+    const supportsOnly = benched.length > 0 && benched.every((h) => h.benchedFor === 'role');
 
     const any = attackers.length > 0;
     const verdict: Verdict = !any ? 'flat' : best > 1 ? 'good' : best < 1 ? 'bad' : 'flat';
@@ -232,7 +287,9 @@ export function teamOffence(chart: Chart, team: Team, includeSupports = false): 
           : verdict === 'good'
             ? ''
             : benched.length
-              ? 'Only supports hit this'
+              ? supportsOnly
+                ? 'Only supports hit this'
+                : 'Only minor moves hit this'
               : verdict === 'bad'
                 ? 'Nobody has an answer'
                 : '',
