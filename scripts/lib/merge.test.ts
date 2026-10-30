@@ -27,3 +27,39 @@ describe('guide fallback', () => {
     expect(forms.map((f) => f.stats)).toEqual(backed.map((a: { stats: unknown }) => a.stats));
   });
 });
+
+describe('renamed forms', () => {
+  test("a wiki form pairs with aniimoguide's old name and keeps its slug", () => {
+    const wiki = { name: 'Emberpup', morphology: 'Timberline Form', entryId: '001', number: '001', elements: ['Fire'], skills: [] };
+    const guide = { slug: 'emberpup-mountain-woods', name: 'Emberpup', morphology: 'Mountain Woods Form', elements: ['Fire'], skills: [] };
+    const [merged, ...rest] = mergeRosters([wiki], [guide]);
+    expect(rest).toEqual([]);
+    expect(merged).toMatchObject({ id: 'emberpup-mountain-woods', morphology: 'Timberline Form', sources: ['wiki', 'guide'] });
+  });
+});
+
+describe('regions', () => {
+  const wiki = (name: string, entryId: string, region: string | null, morphology = 'Basic Form') =>
+    ({ name, morphology, entryId, region, elements: ['Fire'], skills: [] });
+
+  test('regions lead the order, lowest dex number first, wiki order breaking ties', () => {
+    const roster = mergeRosters(
+      [
+        wiki('Dazmand', '10002', 'Season 1 Keepsakes'),
+        wiki('Reefish', '001', 'Whisperwake Isles'),
+        wiki('Flameruff', '002', 'Breezy Plains'),
+        wiki('Emberpup', '001', 'Breezy Plains'),
+        wiki('Lunara', '99997', null),
+      ],
+      [],
+      ['Season 1 Keepsakes', 'Breezy Plains', 'Whisperwake Isles'],
+    );
+    expect(roster.map((a) => a.name)).toEqual(['Emberpup', 'Flameruff', 'Reefish', 'Dazmand', 'Lunara']);
+  });
+
+  test('a form no source places takes the region of its other forms', () => {
+    const guide = { slug: 'reefish-prismana', name: 'Reefish', morphology: 'Prismana Form', elements: ['Water'], skills: [] };
+    const roster = mergeRosters([wiki('Reefish', '001', 'Whisperwake Isles')], [guide]);
+    expect(roster.map((a) => a.region)).toEqual(['Whisperwake Isles', 'Whisperwake Isles']);
+  });
+});

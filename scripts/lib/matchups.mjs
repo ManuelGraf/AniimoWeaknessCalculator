@@ -159,6 +159,23 @@ export const moveElements = (a) => [
 export const displayName = (a) =>
   a.isBasic ? a.name : `${a.name} (${a.morphology.replace(/ Form$/, '')})`;
 
+/**
+ * Split a roster into its regions, keeping the order it arrives in (sync sorts
+ * by region, then dex number). Unplaced forms come last, as "Other". Mirrors
+ * byRegion() in src/lib/data.ts.
+ */
+export function byRegion(roster) {
+  const groups = new Map();
+  for (const a of roster) {
+    const r = a.region ?? null;
+    if (!groups.has(r)) groups.set(r, []);
+    groups.get(r).push(a);
+  }
+  const placed = [...groups].filter(([r]) => r !== null);
+  const other = groups.get(null);
+  return [...placed, ...(other ? [[null, other]] : [])].map(([r, forms]) => ({ region: r ?? 'Other', forms }));
+}
+
 /** Canonical slug for an element pairing, always in chart order. */
 export const dualSlug = (order, a, b) =>
   [a, b].sort((x, y) => order.indexOf(x) - order.indexOf(y)).map((e) => e.toLowerCase()).join('-');

@@ -101,6 +101,8 @@ export function normaliseEntry(o) {
     description: o.description ?? '',
     stats: o.stats ?? null,
     habitats: o.habitats ?? [],
+    // Only set for regions after the first; the wiki names every region.
+    region: o.region ?? null,
     evolution: (o.evolution ?? []).map((e) => ({ name: e.name, slug: e.slug, stage: e.stage })),
     image: o.fullBody ?? o.halfBody ?? null,
     head: o.head ?? null,

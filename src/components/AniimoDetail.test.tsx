@@ -52,7 +52,7 @@ describe('scoreMoves', () => {
     const bomb = named('hexxin', ['Water', 'Ice'], 'Annihilation Bomb');
     expect(bomb.stab).toBe(true);
     expect(bomb.multiplier).toBeCloseTo(0.625);
-    expect(bomb.effective).toBeCloseTo(164 * 1.1 * 0.625); // 112.75
+    expect(bomb.effective).toBeCloseTo(197 * 1.1 * 0.625); // 135.44
 
     const moves = scoreMoves(chart, find('hexxin'), ['Water', 'Ice']);
     expect(moves[0]!.skill.name).toBe('Annihilation Bomb');

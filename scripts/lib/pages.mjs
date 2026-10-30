@@ -13,7 +13,7 @@
  * turns those into the tint, the border and the glow. See section 2 and 10 of
  * src/aniimo-dark.css.
  */
-import { BANDS, band, formatMultiplier, moveElements, displayName, paths } from './matchups.mjs';
+import { BANDS, band, formatMultiplier, moveElements, displayName, byRegion, paths } from './matchups.mjs';
 import { esc, list, arrowGlyph, elChip, elPlate, roleChip, roleBadge, roleLabel, verdictAttr, crumbs, hero, oneLine } from './html.mjs';
 import { abs, SITE_NAME } from './site.mjs';
 import { graphCard } from './graph.mjs';
@@ -573,7 +573,7 @@ ${aniimo.image ? `<img class="form-hero__art" src="${esc(aniimo.image)}" alt="${
 <h1>${esc(name)} weaknesses and type effectiveness</h1>
 <div class="form-hero__meta">
 ${aniimo.number ? `<span class="form-hero__no">No. ${esc(aniimo.number)}</span>` : ''}
-<span class="muted">${esc(aniimo.morphology)}${aniimo.stage ? ` · ${esc(aniimo.stage)} stage` : ''}</span>
+<span class="muted">${aniimo.region ? `${esc(aniimo.region)} · ` : ''}${esc(aniimo.morphology)}${aniimo.stage ? ` · ${esc(aniimo.stage)} stage` : ''}</span>
 </div>
 <div class="chips">${els.map((e) => elChip(e, `${up}${paths.element(e)}`)).join('')}${aniimo.roles.map(roleChip).join('')}</div>
 </div>
@@ -648,9 +648,10 @@ export function rosterPage({ chart, roster, meta, up }) {
     .filter((g) => g.list.length);
 
   const alphabetical = [...roster].sort((a, b) => displayName(a).localeCompare(displayName(b)));
-  const byNumber = [...roster].sort(
-    (a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')) || a.name.localeCompare(b.name),
-  );
+  // Sync already orders the roster by region, then dex number; numbers restart
+  // in each region. Mirrors the grouping in src/components/AniimoGrid.tsx.
+  const regions = byRegion(roster);
+  const multiRegion = regions.length > 1;
 
   const duals = roster.filter((a) => a.elements.length === 2);
 
@@ -741,7 +742,13 @@ ${duals.length} carry two elements and ${roster.length - duals.length} carry one
 <section class="card card--flow" data-app-owns>
 <h2>Every Aniimo at a glance</h2>
 ${tileLegend()}
-<ul class="tile-grid">${byNumber.map((a) => `<li>${aniimoTile(chart, up, a)}</li>`).join('\n')}</ul>
+${regions
+    .map(
+      (g) => `<section class="tile-region"${multiRegion ? ` aria-label="${esc(g.region)}"` : ''}>
+${multiRegion ? `<h3 class="tile-region__title">${esc(g.region)} <span class="muted">${g.forms.length} forms</span></h3>\n` : ''}<ul class="tile-grid">${g.forms.map((a) => `<li>${aniimoTile(chart, up, a)}</li>`).join('\n')}</ul>
+</section>`,
+    )
+    .join('\n')}
 </section>
 
 <section class="card card--flow">

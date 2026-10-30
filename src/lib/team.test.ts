@@ -23,6 +23,7 @@ const mon = (
   name: id,
   morphology: 'Base Form',
   number: null,
+  region: null,
   isBasic: true,
   stage: null,
   elements,

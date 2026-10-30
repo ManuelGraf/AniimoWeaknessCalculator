@@ -47,6 +47,27 @@ export const displayName = (a: Aniimo): string =>
   a.isBasic ? a.name : `${a.name} (${a.morphology.replace(/ Form$/, '')})`;
 
 /**
+ * Split a roster into its regions, keeping the order it arrives in: sync
+ * already sorts by region and then dex number, and numbers restart in each
+ * region. Forms no source places come last, as "Other". Mirrors byRegion() in
+ * scripts/lib/matchups.mjs.
+ */
+export function byRegion(roster: readonly Aniimo[]): Array<{ region: string; forms: Aniimo[] }> {
+  const groups = new Map<string | null, Aniimo[]>();
+  for (const a of roster) {
+    const r = a.region ?? null;
+    if (!groups.has(r)) groups.set(r, []);
+    groups.get(r)!.push(a);
+  }
+  const placed = [...groups].filter(([r]) => r !== null);
+  const other = groups.get(null);
+  return [...placed, ...(other ? [[null, other] as const] : [])].map(([r, forms]) => ({
+    region: r ?? 'Other',
+    forms,
+  }));
+}
+
+/**
  * Rank matches so that what you typed lands where you expect: exact name, then
  * name prefix, then word-start inside the name, then anything containing it.
  * Base forms outrank their regional variants at equal score.

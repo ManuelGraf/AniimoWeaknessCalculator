@@ -1,19 +1,18 @@
 {
-  "generatedAt": "2026-10-12T12:03:54.762Z",
+  "generatedAt": "2026-10-30T00:56:33.908Z",
   "sources": [
     "wiki.aniimo.com",
     "aniimoguide.com"
   ],
   "counts": {
-    "forms": 226,
-    "base": 99,
-    "skills": 1528,
-    "offensiveSkills": 1092,
+    "forms": 265,
+    "base": 124,
+    "skills": 1809,
+    "offensiveSkills": 1311,
     "bySource": {
-      "wiki+guide": 199,
-      "guide": 20,
-      "wiki": 7
+      "wiki+guide": 247,
+      "guide": 18
     }
   },
-  "warnings": 86
+  "warnings": 84
 }

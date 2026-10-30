@@ -54,7 +54,10 @@ export interface Aniimo {
   id: string;
   name: string;
   morphology: string;
+  /** Dex number. Numbering restarts in each region, so read it with `region`. */
   number: string | null;
+  /** In-game region, e.g. "Breezy Plains". null when no source places the form. */
+  region: string | null;
   isBasic: boolean;
   stage: string | null;
   elements: Element[];

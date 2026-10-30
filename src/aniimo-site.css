@@ -385,6 +385,15 @@ body { position: relative; }
   list-style: none; margin: 0; padding: 0;
 }
 
+/* Dex numbers restart in each region, so the grid is split by region. Shared
+   by <AniimoGrid> and rosterPage() in scripts/lib/pages.mjs. */
+.tile-region + .tile-region { margin-top: 28px; }
+.tile-region__title {
+  display: flex; align-items: baseline; gap: 8px;
+  margin: 0 0 12px; font-size: 17px;
+}
+.tile-region__title .muted { font-size: 13px; font-weight: 500; }
+
 .tile {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   height: 100%; padding: 14px 10px 10px;

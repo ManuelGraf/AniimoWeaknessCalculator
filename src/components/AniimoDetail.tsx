@@ -114,6 +114,7 @@ export function AniimoDetail({ chart, aniimo, siteRoot, onRoster }: Props) {
 
   const eyebrow = [
     aniimo.number && `No. ${aniimo.number}`,
+    aniimo.region,
     aniimo.stage,
     aniimo.stats && `BST ${aniimo.stats.total}`,
   ]

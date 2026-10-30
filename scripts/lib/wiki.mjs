@@ -27,8 +27,12 @@ export const SKILL_ELEMENT_ID = {
 };
 
 const payloadUrl = (p) => `${WIKI_ORIGIN}${p}/_payload.json`;
-const formPath = (entryId, morphology) =>
-  `/item/${entryId}/${morphology.toLowerCase().replace(/\s+/g, '-')}`;
+// Entry ids are only unique within a region (`searchKey.countryId`): 001 is
+// Emberpup in the home region and Reefish in another. Pages outside the home
+// region live under a trailing `/<countryId>`; asking for that suffix on a
+// home-region page serves the HTML shell instead of a payload.
+const formPath = (entryId, morphology, region = '') =>
+  `/item/${entryId}/${morphology.toLowerCase().replace(/\s+/g, '-')}${region}`;
 
 function mapElements(keys) {
   return (keys ?? []).map((k) => WIKI_ELEMENT[k]).filter(Boolean);
@@ -131,17 +135,44 @@ function parseForm(detail) {
   };
 }
 
+// Fetch one form, accepting it only if it is the Aniimo we asked for: the bare
+// path of an out-of-region entry can 404 or resolve to a different Aniimo.
+async function fetchForm(client, path, name) {
+  try {
+    const form = parseForm(payloadData(await client.get(payloadUrl(path), { json: true })));
+    return form?.name === name ? form : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function scrapeWiki(client) {
   const index = payloadData(await client.get(payloadUrl(''), { json: true }));
   const roster = (index['aniimo-wiki-list-en'] ?? []).filter((e) => e.visible !== false);
   if (!roster.length) throw new Error('wiki: index payload had no aniimo list');
   console.log(`  index: ${roster.length} base entries`);
 
+  // Region names, in the wiki's own order. Dex numbers restart in each region.
+  const tags = (index['aniimo-country-tags-en'] ?? [])
+    .filter((t) => t.tagType === 'countryNames')
+    .sort((a, b) => a.sort - b.sort);
+  const regionName = new Map(tags.map((t) => [String(t.tagKey), t.name]));
+
+  const missing = [];
+
   // Pass 1: the base form of each entry also tells us which other forms exist.
+  // Try the bare path first (it serves the home region), then the regional one.
   const bases = await mapWithProgress(roster, 'base forms', async (entry) => {
-    const id = entry.searchKey.entryId;
-    const data = payloadData(await client.get(payloadUrl(formPath(id, 'Basic Form')), { json: true }));
-    return parseForm(data);
+    const { entryId: id, name, countryId } = entry.searchKey;
+    let regionPath = '';
+    let form = await fetchForm(client, formPath(id, 'Basic Form'), name);
+    if (!form && countryId) {
+      regionPath = `/${countryId}`;
+      form = await fetchForm(client, formPath(id, 'Basic Form', regionPath), name);
+    }
+    // Not fatal: aniimoguide still covers it, and validate() catches a real drop.
+    if (!form) { missing.push(`${name} (entry ${id}, region ${countryId})`); return null; }
+    return { ...form, regionPath, region: regionName.get(String(countryId)) ?? null };
   });
 
   // Pass 2: fetch every non-basic form discovered above.
@@ -149,17 +180,14 @@ export async function scrapeWiki(client) {
   for (const base of bases) {
     if (!base) continue;
     for (const form of base.forms) {
-      if (form !== 'Basic Form') extra.push({ entryId: base.entryId, form });
+      if (form !== 'Basic Form') extra.push({ base, form });
     }
   }
-  const variants = await mapWithProgress(extra, 'variant forms', async ({ entryId, form }) => {
-    try {
-      const data = payloadData(await client.get(payloadUrl(formPath(entryId, form)), { json: true }));
-      return parseForm(data);
-    } catch {
-      return null; // a listed form without its own page; not fatal
-    }
+  const variants = await mapWithProgress(extra, 'variant forms', async ({ base, form }) => {
+    // null: a listed form without its own page; not fatal
+    const v = await fetchForm(client, formPath(base.entryId, form, base.regionPath), base.name);
+    return v && { ...v, regionPath: base.regionPath, region: base.region };
   });
 
-  return [...bases, ...variants].filter(Boolean);
+  return { forms: [...bases, ...variants].filter(Boolean), missing, regions: tags.map((t) => t.name) };
 }

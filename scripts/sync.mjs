@@ -43,7 +43,8 @@ async function main() {
   console.log(`\nAniimo data sync  (${wikiOnly ? 'official wiki only' : 'official wiki + aniimoguide'})\n`);
 
   console.log('wiki.aniimo.com');
-  const wikiForms = await scrapeWiki(client);
+  const { forms: wikiForms, missing: wikiMissing, regions } = await scrapeWiki(client);
+  if (wikiMissing.length) console.log(`  no payload for ${plural(wikiMissing.length, 'entry', 'entries')}: ${wikiMissing.join(', ')}`);
   console.log(`  -> ${plural(wikiForms.length, 'form')}, ` +
               `${plural(wikiForms.reduce((n, f) => n + f.skills.length, 0), 'skill')}`);
 
@@ -85,8 +86,9 @@ async function main() {
     }
   }
 
-  const roster = mergeRosters(wikiForms, guideForms);
+  const roster = mergeRosters(wikiForms, guideForms, regions);
   const { errors, warnings } = validate(roster, chart, previous);
+  for (const m of wikiMissing) warnings.unshift(`wiki: no payload for ${m}`);
   if (guideProblem) warnings.unshift(`aniimoguide unavailable, reused committed data (${guideProblem})`);
 
   const bySource = roster.reduce((acc, a) => {

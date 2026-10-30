@@ -6,8 +6,18 @@
 // fills the gaps.
 import { GUIDE_ORIGIN } from './guide.mjs';
 
-export const formKey = (name, morphology) =>
-  `${String(name).toLowerCase().trim()}::${String(morphology || 'Basic Form').toLowerCase().trim()}`;
+// The wiki renamed some habitat forms; aniimoguide still uses the old names.
+// Matching on the wiki's name keeps aniimoguide's slug, so page URLs hold.
+const FORM_RENAMES = {
+  'mountain woods form': 'timberline form',
+  'sea of flowers form': 'flowerfield form',
+  'rainstorm form': 'rainfall form',
+};
+
+export const formKey = (name, morphology) => {
+  const m = String(morphology || 'Basic Form').toLowerCase().trim();
+  return `${String(name).toLowerCase().trim()}::${FORM_RENAMES[m] ?? m}`;
+};
 
 const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -31,7 +41,8 @@ function cleanSkill(s, source) {
 const absolute = (url) =>
   !url ? null : /^https?:\/\//.test(url) ? url : `${GUIDE_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
 
-export function mergeRosters(wikiForms, guideForms) {
+// `regionOrder` is the wiki's own region order, used to break ties.
+export function mergeRosters(wikiForms, guideForms, regionOrder = []) {
   const wikiByKey = new Map(wikiForms.map((w) => [formKey(w.name, w.morphology), w]));
   const guideByKey = new Map(guideForms.map((g) => [formKey(g.name, g.morphology), g]));
   const keys = [...new Set([...wikiByKey.keys(), ...guideByKey.keys()])];
@@ -53,6 +64,7 @@ export function mergeRosters(wikiForms, guideForms) {
       name,
       morphology,
       number: w?.entryId ?? g?.number ?? null,
+      region: w?.region ?? g?.region ?? null,
       isBasic: morphology === 'Basic Form',
       stage: g?.stage ?? w?.stage ?? null,
       elements: (w?.elements?.length ? w.elements : g?.elements) ?? [],
@@ -70,8 +82,30 @@ export function mergeRosters(wikiForms, guideForms) {
     };
   });
 
-  // Stable, dex-like ordering: numbered entries first, base form before variants.
+  // A form neither source places (aniimoguide only labels later regions)
+  // belongs wherever its other forms do.
+  const regionOf = new Map();
+  for (const a of roster) if (a.region && !regionOf.has(a.name)) regionOf.set(a.name, a.region);
+  for (const a of roster) a.region ??= regionOf.get(a.name) ?? null;
+
+  // Dex numbers restart in each region, so regions come first: the one with
+  // the lowest numbers leads (season Keepsakes number from 10000 and so trail),
+  // the wiki's order breaks ties, and unplaced forms go last.
+  const lowest = new Map();
+  for (const a of roster) {
+    const n = Number(a.number);
+    if (a.region && Number.isFinite(n)) lowest.set(a.region, Math.min(lowest.get(a.region) ?? n, n));
+  }
+  const tieBreak = (r) => (regionOrder.includes(r) ? regionOrder.indexOf(r) : regionOrder.length);
+  const regions = [...new Set(roster.map((a) => a.region).filter(Boolean))].sort(
+    (x, y) => (lowest.get(x) ?? Infinity) - (lowest.get(y) ?? Infinity) || tieBreak(x) - tieBreak(y) || x.localeCompare(y),
+  );
+  const rank = (r) => (r ? regions.indexOf(r) : regions.length);
+
+  // Stable, dex-like ordering: by region, numbered entries first, base form
+  // before variants.
   roster.sort((a, b) => {
+    if (a.region !== b.region) return rank(a.region) - rank(b.region);
     const na = Number(a.number), nb = Number(b.number);
     const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
     if (aNum && bNum && na !== nb) return na - nb;
@@ -93,6 +127,7 @@ export function guideFormsFromRoster(roster) {
     .map((a) => ({
       slug: a.id,
       number: a.number,
+      region: a.region ?? null,
       name: a.name,
       morphology: a.morphology,
       stage: a.stage,

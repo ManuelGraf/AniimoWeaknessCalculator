@@ -17,7 +17,7 @@
 import { useMemo, useState } from 'react';
 
 import { BANDS, formatMultiplier, verdict, type Chart, type Extreme } from '../lib/chart';
-import { displayName, list } from '../lib/data';
+import { byRegion, displayName, list } from '../lib/data';
 import type { Aniimo, Element } from '../types';
 import { BandArrows, ElPlate, Icon, ROLE_GLYPH, roleLabel } from './ElementBadge';
 
@@ -37,12 +37,11 @@ export function AniimoGrid({ chart, roster, siteRoot, onSelect }: Props) {
   const [elements, setElements] = useState<Element[]>([]);
   const [role, setRole] = useState<string | null>(null);
 
-  // Sorted once. The dex number is the order players know the roster in, and
-  // it keeps a form next to the base it belongs to.
-  const ordered = useMemo(
-    () => [...roster].sort((a, b) => (a.number ?? '').localeCompare(b.number ?? '') || a.name.localeCompare(b.name)),
-    [roster],
-  );
+  // Taken as sync wrote it: by region, then dex number, which is the order
+  // players know the roster in and keeps a form next to the base it belongs
+  // to. Numbers restart in each region, so re-sorting by number would mix them.
+  const ordered = roster;
+  const multiRegion = useMemo(() => byRegion(roster).length > 1, [roster]);
 
   const roles = useMemo(() => {
     const present = new Set(roster.flatMap((a) => a.roles));
@@ -154,13 +153,22 @@ export function AniimoGrid({ chart, roster, siteRoot, onSelect }: Props) {
       {shown.length === 0 ? (
         <p className="empty">No Aniimo matches those filters.</p>
       ) : (
-        <ul className="tile-grid">
-          {shown.map((a) => (
-            <li key={a.id}>
-              <Tile chart={chart} aniimo={a} siteRoot={siteRoot} onSelect={onSelect} />
-            </li>
-          ))}
-        </ul>
+        byRegion(shown).map(({ region, forms }) => (
+          <section key={region} className="tile-region" aria-label={multiRegion ? region : undefined}>
+            {multiRegion && (
+              <h3 className="tile-region__title">
+                {region} <span className="muted">{forms.length} forms</span>
+              </h3>
+            )}
+            <ul className="tile-grid">
+              {forms.map((a) => (
+                <li key={a.id}>
+                  <Tile chart={chart} aniimo={a} siteRoot={siteRoot} onSelect={onSelect} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </>
   );
