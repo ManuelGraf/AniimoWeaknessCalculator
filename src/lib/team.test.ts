@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { dataFile } from '../../test/data';
 import type { Aniimo, ChartData, Element } from '../types';
 import { createChart } from './chart';
-import { attackElements, attackRole, coreElements, coveragePicks, isMainMove, teamDefence, threatPicks, teamFrom, teamIds, teamOffence, type Team } from './team';
+import { attackElements, attackRole, coreElements, coveragePicks, isMainMove, OUTSTANDING_POWER, teamDefence, threatPicks, teamFrom, teamIds, teamOffence, type Team } from './team';
 import { formatHash, parseHash } from './useHashRoute';
 
 const chart = createChart(JSON.parse(dataFile('elements.json')) as ChartData);
@@ -125,8 +125,9 @@ describe('teamOffence', () => {
   });
 
   test('an outstanding move adds its element; a merely solid one does not', () => {
-    const solid = mon('s', ['Grass'], ['dps'], [['Grass', 150, 'Innate'], ['Water', 69]]);
-    const big = mon('b', ['Grass'], ['dps'], [['Grass', 150, 'Innate'], ['Water', 70]]);
+    // Pinned to the constant: the threshold is tuned by hand, the boundary is what's tested.
+    const solid = mon('s', ['Grass'], ['dps'], [['Grass', 150, 'Innate'], ['Water', OUTSTANDING_POWER - 1]]);
+    const big = mon('b', ['Grass'], ['dps'], [['Grass', 150, 'Innate'], ['Water', OUTSTANDING_POWER]]);
     expect(attackElements(solid)).toEqual(['Grass']);
     expect(attackElements(big)).toEqual(['Grass', 'Water']);
     expect(row(teamOffence(chart, [big, null, null, null]).rows, 'Fire').verdict).toBe('good');

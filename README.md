@@ -86,15 +86,17 @@ placed by hand. "See what hits X hardest" reads that element in the picker above
     `coreElements()`. The data has no "core skill" flag; Innate is the proxy. It is always one of
     the form's own types, and on a dual type usually only one (Thunderstorm Scorchhowl, Fire/Lightning,
     counts as Fire only). The ~20 guide-only forms with no moves fall back to their typing;
-  - plus any other element they have an **outstanding** move of: `OUTSTANDING_POWER` (70) might or
+  - plus any other element they have an **outstanding** move of: `OUTSTANDING_POWER` (65) might or
     more and not a dash, glide or dodge (`isMobilityMove()`), so Thornblade's 75-might Water move
-    counts but Stellarys' 74-might Chill Glide does not.
+    counts but Stellarys' 74-might Chill Glide does not. The threshold sits at 65 so that
+    Inferlupa's Crossfire (Fire, 65) and Budclaw/Shrubclaw's Verdant Beam (Grass, 67) count. It is
+    mirrored in `scripts/lib/pages.mjs` for the static team page, so change both together.
 
   Two switches widen this: *Include Support, Heal & Regen* counts every role, and *Include all
   attacking moves* counts every move with might, however weak or mobile. Moves without might
   (heals, buffs, shields — even element-tagged ones) never count. Near misses worth knowing if the
-  threshold is ever tuned: Inferlupa's Crossfire (Fire, 65) and Budclaw/Shrubclaw's Verdant Beam
-  (Grass, 67) fall just under it.
+  threshold is ever tuned: the 60-might Forest Whirl (Grass; Ignitis, Wisptis), Blazing Wolf
+  Assault (Fire; Inferlupa) and Dark Wheel Slash (Dark; Waleetle) fall just under it.
 - *Recommendations*, below the two panels, apply exactly the same rules and switches.
   **Counters** (`threatPicks()`): for the elements the team is weakest to, attackers that hit that
   element with a counted move — forms of that element first, then by the move's might.

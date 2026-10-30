@@ -34,13 +34,13 @@ jobs:
       # with no or unknown elements, a roster that shrank, an inconsistent chart).
       # Gaps in moves or artwork are warnings and still ship, and so is an
       # aniimoguide outage: its share of the committed roster is reused.
+      #
+      # No `npm test` here: the tests read a frozen snapshot (test/fixtures), so
+      # they check the app code, not today's scrape, and a broken test must not
+      # hold the data back. The deploy below runs them before it builds, so a
+      # code failure still stops a broken site from shipping.
       - name: Scrape sources
         run: npm run ${{ inputs.wikiOnly && 'sync:wiki' || 'sync' }}
-
-      # Tests read a frozen snapshot (test/fixtures), so this checks the code,
-      # not whatever the sources returned today.
-      - name: Verify the app still builds and passes
-        run: npm test
 
       - name: Commit if anything changed
         id: commit

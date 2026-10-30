@@ -794,15 +794,16 @@ ${faqSection(q)}
 /**
  * Who counts as coverage in the team builder: DPS and Break forms, through
  * their core element - that of their Innate skills, basic ATK and the
- * Ultimate - plus outstanding moves of other elements: 70+ might and not a
+ * Ultimate - plus outstanding moves of other elements: 65+ might and not a
  * dash, glide or dodge. Mirrors attackRole(), coreElements(), isMainMove()
- * and countedSkills() in src/lib/team.ts.
+ * and countedSkills() in src/lib/team.ts; keep OUTSTANDING_POWER equal to
+ * the one there.
  */
 const isAttacker = (a) => a.roles.some((r) => /^(dps|break)$/i.test(r));
-const OUTSTANDING_POWER = 70;
+const OUTSTANDING_POWER = 65;
 const MOBILITY =
   /(glide|dash)|^(flies|dashes (at|toward)|charges (at|toward)|rush(es)? toward|quickly charges|tackles the target|curls into a ball and dashes|quickly leaps up with brief invincible|jumps up to dodge|moves back|immediately breaks free|transforms into a ball|rolls continuously)/i;
-const damagingSkills = (a) => {
+export const countedSkills = (a) => {
   const all = a.skills.filter((s) => s.offensive && s.element && (s.power ?? 0) > 0);
   const innate = all.filter((s) => s.section === 'Innate');
   const core = innate.length ? innate.map((s) => s.element) : a.elements;
@@ -830,7 +831,7 @@ export function teamPage({ chart, roster, meta, up }) {
     const by = chart.weakTo(el);
     const hitters = attackers
       .map((a) => {
-        const moves = damagingSkills(a).filter((s) => by.includes(s.element));
+        const moves = countedSkills(a).filter((s) => by.includes(s.element));
         const top = moves.sort((x, y) => y.power - x.power)[0];
         return top ? { a, move: top } : null;
       })
