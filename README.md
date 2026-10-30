@@ -45,10 +45,10 @@ The three together are what make it useful — the best multiplier is often not 
 
 | Move | Element | Base | STAB | Multiplier | Effective |
 | --- | --- | --- | --- | --- | --- |
-| Annihilation Bomb | Dark | 164 | ×1.1 | 0.625× | **113** |
-| Shard Impact | Earth | 54 | — | 1× | 54 |
-| Euphoric Sonic Blast | Grass | 30 | ×1.1 | 1.6× | 53 |
-| Malicious Outburst | Dark | 68 | ×1.1 | 0.625× | 47 |
+| Annihilation Bomb | Dark | 197 | ×1.1 | 0.625× | **135** |
+| Shard Impact | Earth | 65 | — | 1× | 65 |
+| Euphoric Sonic Blast | Grass | 36 | ×1.1 | 1.6× | 63 |
+| Malicious Outburst | Dark | 82 | ×1.1 | 0.625× | 56 |
 
 The resisted move wins by a wide margin, and the super-effective one only comes third, behind a
 neutral off-element move — which a multiplier on its own will not tell you. Multipliers are tinted from the attacker's side on this
@@ -61,6 +61,10 @@ and name, and underneath a five-column bar — one column per damage band, 2.56�
 icons say which elements land in each. Nothing is behind a hover, so a form's whole defensive spread
 is readable while scanning, and the columns line up down the grid because all five are always drawn
 whether or not anything falls in them.
+
+The grid is split into one section per in-game region (Breezy Plains, Whisperwake Isles, Season 1
+Keepsakes, then "Other"), because dex numbers restart in each region: Emberpup and Reefish are both
+No. 001. See [Regions](#regions).
 
 Filter by name, by role, or by up to two elements at once — two elements means *both*, which is how
 you find an exact dual pairing. Clicking a tile opens that form's own page.
@@ -150,6 +154,11 @@ npm run sync:check     # dry run, no cache, writes nothing
 `sync` re-derives everything and **refuses to overwrite the database** if validation fails, so a
 broken scrape cannot silently ship.
 
+**Local runs read a response cache** (`.cache/`), and plain `npm run sync` uses it. After a source
+changes, that cache still holds the old responses, and the sync will quietly rebuild the old
+roster: it finishes in about a second instead of ~15. Use `sync:check` or `node scripts/sync.mjs
+--no-cache`, or delete `.cache/`. CI starts without a cache, so it is not affected.
+
 Only the official wiki is a hard dependency. If aniimoguide is down, or its payload stops parsing
 (an exception, or an Aniidex more than 10% shorter than the guide-backed forms already committed),
 the run reuses the guide's share of the committed `aniimo.json` instead: the same forms, stats,
@@ -187,14 +196,35 @@ also exposes the wiki-only option.
 next to every route, so the scraper reads structured data rather than parsing HTML. Critically, it
 tags every combat skill with its element, which is what makes the offence panel possible.
 
+Its entry ids are only unique **within a region** (`searchKey.countryId` in the index payload):
+`001` is Emberpup in Breezy Plains and Reefish in Whisperwake Isles. That decides the URL:
+
+- Home-region pages live at `/item/<id>/<form>`, e.g. `/item/001/basic-form`.
+- Other regions add the region id: `/item/001/basic-form/300301`. The bare path either 404s or, for
+  a shared id, serves the *home-region* Aniimo with the same number.
+- Adding the region id to a home-region page does not work either: it returns the HTML page, not JSON.
+
+So [`scripts/lib/wiki.mjs`](scripts/lib/wiki.mjs) tries the bare path first and falls back to the
+regional one. It only accepts a payload whose name matches the entry it asked for, and variant forms
+reuse whichever path worked for their base. An entry with no working page is a warning, not a fatal
+error, because aniimoguide still covers it. (The sync broke on 2026-10-30 when the wiki introduced
+this; before that every page used the bare path.)
+
+The wiki has also **renamed habitat forms** that aniimoguide still calls by the old names:
+Mountain Woods → Timberline, Sea of Flowers → Flowerfield, Rainstorm → Rainfall. `FORM_RENAMES` in
+[`scripts/lib/merge.mjs`](scripts/lib/merge.mjs) pairs them. The wiki's name is shown, and
+aniimoguide's slug is kept as the id (`emberpup-mountain-woods`), so page URLs stay put. If a sync
+suddenly shows the same form twice, once wiki-only and once guide-only, another rename is the likely
+cause: add it there.
+
 **[aniimoguide.com](https://aniimoguide.com/aniidex)** — community. Tracks new Aniimo sooner and
 carries base stats the wiki does not publish. Its whole Aniidex, including regional and Prismana
 forms, is in one page payload.
 
-The wiki wins on anything it knows; aniimoguide fills the gaps. At the time of writing that is 199
-forms from both, 7 from the wiki alone and 20 from aniimoguide alone. The two were cross-checked
-across every skill they share: **995 agreed and 0 contradicted** — the only differences were skills
-aniimoguide leaves untagged, which the wiki supplies.
+The wiki wins on anything it knows; aniimoguide fills the gaps. At the time of writing (2026-10-30)
+that is 247 forms from both, none from the wiki alone and 18 from aniimoguide alone. When the two
+were first cross-checked across every skill they share, **995 agreed and 0 contradicted**. The only
+differences were skills aniimoguide leaves untagged, which the wiki supplies.
 
 **Why aniimoguide stays.** It looks optional, but it is the only source for a lot of what ships:
 the forms the wiki has not published yet, **all** base stats, stage, habitats, 26 head icons, and
@@ -214,6 +244,31 @@ data least likely to change, so it was removed. If the game rebalances elements,
 Skills that carry no element at all (movement, buffs, heals, and a few utility moves) are kept but
 marked non-offensive, so they never count toward coverage.
 
+### Regions
+
+Each form has a `region` (e.g. `"Breezy Plains"`, or `null`), and `number` is that region's dex
+number, so the two are always read together. Sources, in priority order:
+
+1. The wiki: `countryId` mapped to a name through `aniimo-country-tags-en` in the index payload.
+2. aniimoguide's `region` field. It only labels regions after the first (today just Whisperwake
+   Isles).
+3. Another form of the same Aniimo that has a region. This covers Prismana and weather forms that
+   are only on aniimoguide.
+
+`mergeRosters` writes the roster already sorted: by region, then dex number, base form before
+variants. Regions are ordered by their lowest dex number, with the wiki's own order breaking ties.
+That puts Breezy Plains (001…) before Whisperwake Isles (001…), and Season 1 Keepsakes (10002…)
+after both. Forms with no region go last.
+
+The app and the static pages **do not re-sort by number**, since numbers repeat across regions. They
+group the roster as written with `byRegion()` in [`src/lib/data.ts`](src/lib/data.ts), mirrored in
+[`scripts/lib/matchups.mjs`](scripts/lib/matchups.mjs). Unplaced forms show as "Other". Today
+that is 10: Irisalis and Somniwing (almost certainly Breezy Plains, but only on aniimoguide, which
+does not link them to their evolution lines), Lunara/Helion and their Fennelun/Soleon transforms
+(no region on the wiki either), and the unreleased Cheekie, Wavwal, Malangel and Malevsera. They
+move into their region as soon as a source labels them. Detail pages show the region next to the
+number.
+
 ### Artwork
 
 Official art from the wiki's CDN is preferred, with aniimoguide as the fallback. Two traps here,
@@ -228,7 +283,7 @@ both handled in [`scripts/lib/images.mjs`](scripts/lib/images.mjs):
   Prismana and weather variants) have no head of their own. Those fall back to aniimoguide.
   Results are cached, so repeat syncs cost nothing.
 
-Currently 206/226 stage images and 180/226 head icons come from the official CDN; the rest from
+Currently 247/265 stage images and 215/265 head icons come from the official CDN; the rest from
 aniimoguide. Every entry has both, and the test suite asserts they are still images.
 
 ## Tests
@@ -279,13 +334,13 @@ every lookup the tool supports:
                                 and every Fire Aniimo
 /element/fire-earth/       ×36  dual pairings (the 9 no Aniimo has are noindex)
 /aniimo/                   every form as a tile, and every form's weakness in one table
-/aniimo/glacy/             ×226 matchup table, move coverage, stats, habitats
+/aniimo/glacy/             ×265 matchup table, move coverage, stats, habitats
 /team/                     team builder; statically, the best counters per element and how teams are scored
 404.html, robots.txt, sitemap.xml, llms.txt
 ```
 
 `/aniimo/` is the landing page for *"what is every Aniimo weak to"*. It carries the same tile grid
-the app shows, written statically, then a plain table of all 226 forms with their elements, what
+the app shows, written statically, then a plain table of all 265 forms with their elements, what
 deals each the most damage and what it resists, and a count of how many forms each attacking element
 is super effective against. The tiles say it in icons, so each one also states its spread in a
 sentence for a screen reader, and the table states it again in plain view — an icon grid is not
@@ -429,8 +484,10 @@ same geometry for every element and diffs the markup the same way the tile test 
 ## Caveats
 
 - Dual-element handling is an inference, not documented game behaviour. See above.
-- 27 combat skills across ~10 Aniimo carry no element on either source and are excluded from
-  coverage; `npm run sync` lists them as warnings.
+- 66 combat skills across 18 Aniimo carry no element on either source and are excluded from
+  coverage; `npm run sync` lists them as warnings. Almost all are aniimoguide-only forms
+  (Prismana and unreleased) that the wiki has not published.
+- Dex numbers are per region, not global; see [Regions](#regions).
 - Artwork is hotlinked from the source CDNs rather than vendored, and falls back to a monogram if a
   request fails.
 - `robots.txt` and `llms.txt` are only read from a domain root, so they do nothing on the current
