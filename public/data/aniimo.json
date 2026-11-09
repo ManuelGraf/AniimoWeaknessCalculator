@@ -19107,7 +19107,7 @@
    },
    {
     "name": "ATK",
-    "description": "Wields the power of fire to attack targets at close range.",
+    "description": "Wields the power of fire to attack targets from a distance.",
     "section": "Innate",
     "element": null,
     "power": 6,
@@ -22219,8 +22219,8 @@
     "source": "guide"
    },
    {
-    "name": "ATK",
-    "description": "Wields dark power to attack targets at close range.",
+    "name": "Attack",
+    "description": "Wields the power of Dark to attack targets at close range.",
     "section": "Innate",
     "element": null,
     "power": 6,
@@ -25662,7 +25662,7 @@
    },
    {
     "name": "ATK",
-    "description": "Wields dark power to attack targets at close range.",
+    "description": "(BREAK) Wields the power of darkness to attack targets at close range.",
     "section": "Innate",
     "element": null,
     "power": 6,
