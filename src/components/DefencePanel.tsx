@@ -10,30 +10,33 @@ import { BandArrows, ElChip } from './ElementBadge';
  * group keeps its own label and blurb, which is where the difference lives.
  */
 export function DefencePanel({ chart, defenders }: { chart: Chart; defenders: Element[] }) {
-  // Shared with the Aniimo tile's spread bar, which keeps the empty bands to
-  // hold its columns in line; a panel with nothing in a band just drops it.
-  const groups = chart.spreadByBand(defenders).filter((g) => g.entries.length > 0);
+  // All five bands, always, like the Aniimo tile's spread bar: an empty band
+  // keeps its box so the list holds the same shape from one pick to the next.
+  const groups = chart.spreadByBand(defenders);
 
   return (
     <div className="bands">
       {groups.map(({ band: b, entries }) => (
         <section
           key={b.key}
-          aria-label={`${b.label} ${b.blurb}`}
+          aria-label={`${b.label} ${b.term}`}
           className="band"
-          data-verdict={verdict(entries[0]!.multiplier)}
+          data-verdict={verdict(b.mult)}
+          data-empty={entries.length ? undefined : 'true'}
         >
           <div>
             <div className="band__mult">
               <BandArrows arrows={b.arrows} />
               {b.label}
             </div>
-            <div className="band__blurb">{b.blurb}</div>
+            <div className="band__blurb">{b.term}</div>
           </div>
           <div className="band__items">
-            {entries.map((e) => (
-              <ElChip key={e.element} element={e.element} />
-            ))}
+            {entries.length ? (
+              entries.map((e) => <ElChip key={e.element} element={e.element} />)
+            ) : (
+              <span className="band__none">None</span>
+            )}
           </div>
         </section>
       ))}

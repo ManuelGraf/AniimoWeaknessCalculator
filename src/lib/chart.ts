@@ -194,14 +194,20 @@ export interface Band {
   label: string;
   /** Short read of what the number means, used as the group heading. */
   blurb: string;
+  /**
+   * What the band makes the defender: "Very weak" to "Very resistant". The
+   * defence list and the slices legend lead with it. The static pages still
+   * use `blurb`; matchups.mjs carries `term` too, to stay a mirror.
+   */
+  term: string;
 }
 
 export const BANDS: Band[] = [
-  { min: 2.5, key: 'x256', mult: 2.56, arrows: 2, label: '2.56×', blurb: 'Hits both halves' },
-  { min: 1.5, key: 'x16', mult: 1.6, arrows: 1, label: '1.6×', blurb: 'Super effective' },
-  { min: 0.99, key: 'x1', mult: 1, arrows: 0, label: '1×', blurb: 'Neutral' },
-  { min: 0.6, key: 'x0625', mult: 0.625, arrows: -1, label: '0.625×', blurb: 'Resisted' },
-  { min: 0, key: 'x039', mult: 0.390625, arrows: -2, label: '0.39×', blurb: 'Resisted twice' },
+  { min: 2.5, key: 'x256', mult: 2.56, arrows: 2, label: '2.56×', blurb: 'Hits both halves', term: 'Very weak' },
+  { min: 1.5, key: 'x16', mult: 1.6, arrows: 1, label: '1.6×', blurb: 'Super effective', term: 'Weak' },
+  { min: 0.99, key: 'x1', mult: 1, arrows: 0, label: '1×', blurb: 'Neutral', term: 'Neutral' },
+  { min: 0.6, key: 'x0625', mult: 0.625, arrows: -1, label: '0.625×', blurb: 'Resisted', term: 'Resistant' },
+  { min: 0, key: 'x039', mult: 0.390625, arrows: -2, label: '0.39×', blurb: 'Resisted twice', term: 'Very resistant' },
 ];
 
 /**

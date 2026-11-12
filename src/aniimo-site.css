@@ -286,6 +286,9 @@ body { position: relative; }
 }
 .band__blurb { margin-top: 5px; font-size: 11.5px; color: var(--text-mute); }
 .band__items { display: flex; flex-wrap: wrap; gap: 8px; }
+/* An empty band keeps its box, dimmed, so the five always hold their places. */
+.band[data-empty] { opacity: 0.45; }
+.band__none { font-size: 13px; color: var(--text-mute); }
 
 @media (max-width: 560px) {
   .band { grid-template-columns: 1fr; gap: 10px; }
@@ -586,6 +589,15 @@ body { position: relative; }
 
 /* ------------------------------------------------------------- responsive */
 
+/* The header is one nowrap row - brand, toggle (or the static nav), status
+   chip - and measures about 814px with the subtitle, 886px on a static page.
+   Between 760px, where the design drops the subtitle, and here, it pushed the
+   page sideways on every view. Without the subtitle it is about 654px / 726px,
+   which fits from 761px up. */
+@media (max-width: 960px) {
+  .brand__sub { display: none; }
+}
+
 @media (max-width: 760px) {
   .form-hero__art { width: 84px; height: 84px; }
   /* Not narrower: a band column has to stay wide enough for two plates.
@@ -721,13 +733,27 @@ body { position: relative; }
   border-top: 1px solid var(--line);
   background: rgba(255,255,255,0.02);
 }
-.hero-spread { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-.hero-spread__band { padding: 9px 4px 10px; gap: 8px; border-radius: 12px; }
-/* Arrows over the number: side by side, "0.625×" plus a double arrow does not
-   fit a fifth of a phone. */
-.hero-spread__band .tile__bandMult { flex-direction: column; gap: 4px; font-size: 13px; }
-.hero-spread__band .band-arrows { height: 15px; }
-.hero-spread__band .tile__bandEls { gap: 4px; }
+/* The slices and the band column side by side; stacked, slices first, once
+   the card is too narrow for both. */
+.hero-defence { display: grid; gap: clamp(20px, 3vw, 32px); align-items: start; }
+@media (min-width: 760px) {
+  .hero-defence { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+}
+
+/* The five bands as one column, hardest hit at the top: each a row with the
+   multiplier on the left and the elements that land there beside it. */
+.hero-spread { display: flex; flex-direction: column; gap: 8px; }
+.hero-spread__band {
+  flex-direction: row; justify-content: flex-start; align-items: center; gap: 12px;
+  min-height: 50px; padding: 10px 12px; border-radius: 12px;
+  border-left: 3px solid rgb(var(--v-rgb) / 0.7);
+}
+[data-verdict="flat"].hero-spread__band { border-left-color: var(--text-faint); }
+.hero-spread__head { flex: none; width: 7rem; display: flex; flex-direction: column; gap: 3px; }
+.hero-spread__band .tile__bandMult { gap: 6px; font-size: 15px; }
+.hero-spread__term { font-size: 11.5px; line-height: 1.2; color: var(--text-mute); }
+.hero-spread__band .band-arrows { height: 13px; }
+.hero-spread__band .tile__bandEls { justify-content: flex-start; gap: 6px; }
 .hero-spread__band .tile__bandNone { line-height: 30px; }
 
 /* ---------------------------------------------------------- target picker */
@@ -822,17 +848,6 @@ body { position: relative; }
   .move-row__formula { display: none; }
 }
 
-@media (max-width: 560px) {
-  /* Five band columns across a phone leave about 58px inside each one, which
-     is one 30px plate per line - so the 1x band, where most of the nine
-     usually land, becomes a six-row tower. Shrunk to a size that fits two
-     across, the same way the tile bar does it. */
-  .hero-spread { gap: 4px; }
-  .hero-spread__band { padding: 8px 3px 9px; gap: 6px; }
-  .hero-spread__band .el-plate { --plate-size: 22px; --plate-radius: 7px; }
-  .hero-spread__band .tile__bandMult { font-size: 11px; }
-  .hero-spread__band .tile__bandNone { line-height: 22px; }
-}
 
 /* -------------------------------------------------------------------------
    Element relation graph
@@ -1375,4 +1390,80 @@ button.team-rec__btn:hover { background: rgb(var(--v-rgb) / 0.10); border-color:
   .brand__wordmark { display: none; }
   .view-toggle { min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .view-toggle button { padding-inline: 8px; font-size: 12.5px; white-space: nowrap; }
+}
+
+/* -------------------------------------------------------------------------
+   Defence slices
+   A defender's spread as nine wedges round a nonagon:
+   src/components/DefenceSlices.tsx, geometry in src/lib/slices.ts. From the
+   "Defence star chart" design canvas (the Slices artboards).
+
+   No hex for an element or a verdict: the labels carry data-el and the rims
+   and badges data-verdict, as everywhere else. The greys of the rings are the
+   design's own and only used here.
+   ------------------------------------------------------------------------- */
+
+.slices { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.slices__svg { display: block; width: 100%; max-width: 520px; margin: 0 auto; overflow: visible; }
+
+.slices__rings polygon { stroke-width: 10; stroke-linejoin: round; }
+.slices__rings [data-level="5"] { fill: #6c7186; stroke: #6c7186; }
+.slices__rings [data-level="4"] { fill: #80859b; stroke: #80859b; }
+.slices__rings [data-level="3"] { fill: #646980; stroke: #646980; }
+.slices__rings [data-level="2"] { fill: #7a7f95; stroke: #7a7f95; }
+.slices__rings [data-level="1"] { fill: #8d92a8; stroke: #8d92a8; }
+
+.slices__ticks line { stroke: #3c6c92; stroke-width: 6; stroke-linecap: round; }
+
+.slices__gaps polygon { fill: #8A5560; }
+.slices__gaps polygon[data-deep] { fill: #8A2F3B; }
+
+.slices__kites { opacity: 0.9; }
+.slices__kites polygon { fill: var(--text); }
+
+.slices__neutral { fill: none; stroke: #1b2230; stroke-opacity: 0.5; stroke-width: 1.5; stroke-dasharray: 3 4; }
+.slices__spokes line { stroke: #5b6074; stroke-width: 1.6; }
+.slices__hub { fill: #4b5065; stroke: var(--text); stroke-width: 1.5; }
+.slices__rims polygon { fill: var(--v-text); }
+
+.slices__plate { fill: rgb(var(--el-rgb) / 0.16); stroke: rgb(var(--el-rgb) / 0.45); stroke-width: 1; }
+.slices__icon { color: var(--el); fill: currentColor; }
+.slices__badge circle { fill: var(--v-text); stroke: var(--surface-solid); stroke-width: 2; }
+.slices__badge path { fill: var(--surface-solid); }
+.slices__name { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-anchor: middle; fill: var(--text-dim); }
+
+.slices__legend {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px;
+  font-size: 12.5px; color: var(--text-dim);
+}
+.slices__legend span {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--v-text);
+}
+.slices__legend .slices__term {
+  margin-left: 2px; font-family: var(--font-body); font-weight: 500; color: var(--text-dim);
+}
+.slices__legend svg { width: 14px; height: 14px; }
+.slices__legend circle { fill: var(--v-text); }
+.slices__legend path { fill: var(--surface-solid); }
+.slices__legend .slices__legendLine { width: 18px; }
+/* Tighter on a phone, where the five steps wrap to two lines. */
+@media (max-width: 560px) {
+  .slices__legend { gap: 6px 10px; font-size: 11.5px; }
+  .slices__legend span { gap: 4px; }
+  .slices__legend svg { width: 12px; height: 12px; }
+}
+.slices__legendLine line { stroke: var(--text-dim); stroke-width: 1.5; stroke-dasharray: 3 4; }
+
+/* The Types page: the slices beside the band list, stacked on narrow screens. */
+.defence-split {
+  display: grid; gap: clamp(20px, 3vw, 32px); align-items: start;
+  /* On top of the card's own 20px stack gap: the answer reads as its own
+     block, not as one more row of the picker. */
+  margin-top: clamp(16px, 3vw, 28px);
+}
+@media (min-width: 860px) {
+  .defence-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }

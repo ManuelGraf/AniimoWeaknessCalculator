@@ -11,6 +11,7 @@ import { AniimoCombobox } from './components/AniimoCombobox';
 import { AniimoDetail } from './components/AniimoDetail';
 import { AniimoGrid } from './components/AniimoGrid';
 import { DefencePanel } from './components/DefencePanel';
+import { DefenceSlices } from './components/DefenceSlices';
 import { ElPlate } from './components/ElementBadge';
 import { ElementGraph } from './components/ElementGraph';
 import { TeamBuilder } from './components/TeamBuilder';
@@ -225,28 +226,25 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
                       </button>
                     ))}
                   </div>
-                  {elements.length === 2 && (
-                    <p className="note">
-                      Reading both sides at once. Pick a third to replace the older one.
-                    </p>
-                  )}
                 </div>
 
+                {/* The answer sits right under the question, in the same card:
+                    the slices by element, the bands by multiplier beside them. */}
+                {elements.length === 0 ? (
+                  <p className="empty">
+                    Pick an element, or search for an Aniimo, to see what hits it hardest.
+                  </p>
+                ) : (
+                  <section
+                    className="defence-split"
+                    aria-label={`Damage taken by a ${elements.join(' / ')} defender`}
+                  >
+                    <DefenceSlices chart={chart} defenders={elements} />
+                    <DefencePanel chart={chart} defenders={elements} />
+                  </section>
+                )}
               </div>
             </section>
-
-            {elements.length === 0 ? (
-              <p className="empty">
-                Pick an element, or search for an Aniimo, to see what hits it hardest.
-              </p>
-            ) : (
-              <Panel
-                title="Taking damage"
-                subtitle={`What each element does to a ${elements.join(' / ')} defender.`}
-              >
-                <DefencePanel chart={chart} defenders={elements} />
-              </Panel>
-            )}
 
             {/* The whole chart at a glance; picking a node from it reads that element above. */}
             <ElementGraph chart={chart} onOpen={(el) => setElements([el])} />
@@ -257,20 +255,6 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
       {/* A prerendered page keeps its own footer, with the same attribution. */}
       {!isPrerendered() && <Footer meta={db.meta} />}
     </>
-  );
-}
-
-function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return (
-    <section className="card">
-      <div className="card__head">
-        <div>
-          <h2>{title}</h2>
-          <p className="muted">{subtitle}</p>
-        </div>
-      </div>
-      <div className="card__body">{children}</div>
-    </section>
   );
 }
 

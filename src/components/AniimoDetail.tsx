@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import { formatMultiplier, verdict, type Chart, type Extreme, type Verdict } from '../lib/chart';
 import { list } from '../lib/data';
 import type { Aniimo, Element, Skill } from '../types';
+import { DefenceSlices } from './DefenceSlices';
 import { BandArrows, ElChip, ElPlate, Icon, ROLE_GLYPH, RoleChip, roleLabel } from './ElementBadge';
 
 /** Same-element attack bonus: a move sharing one of its user's elements hits 10% harder. */
@@ -218,26 +219,34 @@ export function AniimoDetail({ chart, aniimo, siteRoot, onRoster }: Props) {
           </div>
         </div>
 
-        <div className="hero-card__spread">
-          <span className="eyebrow">Taking damage · most to least</span>
-          {/* The bar is a picture of the same numbers - said once, in words. */}
-          <p className="sr-only">{spokenSpread(chart, aniimo.elements)}</p>
-          <div className="hero-spread" aria-hidden="true">
-            {bands.map(({ band: b, entries }) => (
-              <div key={b.key} className="tile__band hero-spread__band" data-verdict={verdict(b.mult)}>
-                <span className="tile__bandMult">
-                  <BandArrows arrows={b.arrows} />
-                  {b.label}
-                </span>
-                <span className="tile__bandEls">
-                  {entries.length ? (
-                    entries.map((e) => <ElPlate key={e.element} element={e.element} size="xs" />)
-                  ) : (
-                    <span className="tile__bandNone">·</span>
-                  )}
-                </span>
-              </div>
-            ))}
+        {/* The defence, twice over: by element as slices, and by band as a
+            column beside them, hardest hit at the top. */}
+        <div className="hero-card__spread hero-defence">
+          <DefenceSlices chart={chart} defenders={aniimo.elements} />
+
+          <div className="hero-defence__list">
+            {/* The column is a picture of the same numbers - said once, in words. */}
+            <p className="sr-only">{spokenSpread(chart, aniimo.elements)}</p>
+            <div className="hero-spread" aria-hidden="true">
+              {bands.map(({ band: b, entries }) => (
+                <div key={b.key} className="tile__band hero-spread__band" data-verdict={verdict(b.mult)}>
+                  <span className="hero-spread__head">
+                    <span className="tile__bandMult">
+                      <BandArrows arrows={b.arrows} />
+                      {b.label}
+                    </span>
+                    <span className="hero-spread__term">{b.term}</span>
+                  </span>
+                  <span className="tile__bandEls">
+                    {entries.length ? (
+                      entries.map((e) => <ElPlate key={e.element} element={e.element} size="xs" />)
+                    ) : (
+                      <span className="tile__bandNone">·</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

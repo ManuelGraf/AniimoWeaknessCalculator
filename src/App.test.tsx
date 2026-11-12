@@ -74,7 +74,7 @@ describe('App', () => {
 
     await user.click(within(screen.getByRole('group', { name: 'Elements' })).getByRole('button', { name: /^Fire$/i }));
 
-    expect(await screen.findByText('Taking damage')).toBeTruthy();
+    expect(await screen.findByRole('region', { name: /^Damage taken by a / })).toBeTruthy();
     // Fire is weak to Water and Earth, so both must appear in the 1.6x group.
     const weak = screen.getByRole('region', { name: /^1\.6×/ });
     expect(within(weak).getByText('Water')).toBeTruthy();
@@ -165,7 +165,7 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Types' }));
     await waitFor(() => expect(window.location.hash).toBe('#/defense/fire+water'));
-    expect(await screen.findByText('Taking damage')).toBeTruthy();
+    expect(await screen.findByRole('region', { name: /^Damage taken by a / })).toBeTruthy();
   });
 
   test('the team tab builds a team in the hash and keeps it across a detour', async () => {
@@ -380,7 +380,7 @@ describe('App', () => {
     await user.click(document.querySelector<HTMLElement>('.graph__node[data-el="ice"]')!);
     await user.click(screen.getByRole('button', { name: 'See what hits Ice hardest' }));
     await waitFor(() => expect(window.location.hash).toBe('#/defense/ice'));
-    expect(await screen.findByText('Taking damage')).toBeTruthy();
+    expect(await screen.findByRole('region', { name: /^Damage taken by a / })).toBeTruthy();
   });
 
   test('an old #/chart link lands on the types page', async () => {
@@ -435,7 +435,7 @@ describe('App', () => {
       render(<App />);
       await ready();
 
-      expect(await screen.findByText('Taking damage')).toBeTruthy();
+      expect(await screen.findByRole('region', { name: /^Damage taken by a / })).toBeTruthy();
       const weak = screen.getByRole('region', { name: /^1\.6×/ });
       expect(within(weak).getByText('Water')).toBeTruthy();
     });
