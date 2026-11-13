@@ -15,10 +15,10 @@
  * the same mechanism the tiles and bands use (src/aniimo-dark.css, sections
  * 2 and 10).
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 
 import { formatMultiplier, verdict, type Chart, type Extreme, type Verdict } from '../lib/chart';
-import { list } from '../lib/data';
+import { displayName, list } from '../lib/data';
 import type { Aniimo, Element, Skill } from '../types';
 import { DefenceSlices } from './DefenceSlices';
 import { BandArrows, ElChip, ElPlate, Icon, ROLE_GLYPH, RoleChip, roleLabel } from './ElementBadge';
@@ -89,10 +89,36 @@ interface Props {
   siteRoot: string;
   /** Handled in-app when the click is a plain one; the href covers the rest. */
   onRoster: () => void;
+  /** The forms either side of this one in roster order, if any. */
+  prev?: Aniimo | null;
+  next?: Aniimo | null;
+  /** Opens a neighbour in-app; the href covers modified clicks. */
+  onOpen?: (a: Aniimo) => void;
 }
 
-export function AniimoDetail({ chart, aniimo, siteRoot, onRoster }: Props) {
+/** A plain left click, which the app handles itself rather than loading a page. */
+const plainClick = (e: MouseEvent) =>
+  !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0);
+
+export function AniimoDetail({ chart, aniimo, siteRoot, onRoster, prev = null, next = null, onOpen }: Props) {
   const [target, setTarget] = useState<Element[]>([]);
+
+  // ← and → step through the roster, unless the keys belong to something else:
+  // a text field, a modifier chord, or an element that handles arrows itself.
+  useEffect(() => {
+    if (!onOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="listbox"], [role="combobox"]')) return;
+      const to = e.key === 'ArrowLeft' ? prev : e.key === 'ArrowRight' ? next : null;
+      if (!to) return;
+      e.preventDefault();
+      onOpen(to);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [prev, next, onOpen]);
 
   const toggleTarget = (el: Element) =>
     setTarget((cur) =>
@@ -124,24 +150,33 @@ export function AniimoDetail({ chart, aniimo, siteRoot, onRoster }: Props) {
 
   return (
     <div className="stack">
-      <p className="crumbs detail-crumbs">
-        {/*
-          A real link to the static roster page, intercepted for a plain click
-          the way a tile is: the database is already loaded, so a page load
-          would only throw it away.
-        */}
-        <a
-          href={`${siteRoot}aniimo/`}
-          onClick={(e) => {
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-            e.preventDefault();
-            onRoster();
-          }}
-        >
-          ← All Aniimo
-        </a>{' '}
-        / {aniimo.name}
-      </p>
+      <div className="detail-nav">
+        <p className="crumbs detail-crumbs">
+          {/*
+            A real link to the static roster page, intercepted for a plain click
+            the way a tile is: the database is already loaded, so a page load
+            would only throw it away.
+          */}
+          <a
+            href={`${siteRoot}aniimo/`}
+            onClick={(e) => {
+              if (!plainClick(e)) return;
+              e.preventDefault();
+              onRoster();
+            }}
+          >
+            ← All Aniimo
+          </a>{' '}
+          / {aniimo.name}
+        </p>
+
+        {onOpen && (prev || next) && (
+          <nav className="detail-pager" aria-label="Previous and next Aniimo">
+            <PagerLink to={prev} dir="prev" siteRoot={siteRoot} onOpen={onOpen} />
+            <PagerLink to={next} dir="next" siteRoot={siteRoot} onOpen={onOpen} />
+          </nav>
+        )}
+      </div>
 
       {/* ------------------------------------------------------------ hero */}
       <section className="card card--raised hero-card" data-el={el1}>
@@ -433,6 +468,54 @@ function MoveRow({ move: m, best }: { move: ScoredMove; best: boolean }) {
         <span className="move-row__none">no damage</span>
       )}
     </li>
+  );
+}
+
+/**
+ * One side of the prev/next pager. A real link to the neighbour's static page,
+ * intercepted for a plain click like the crumb; at either end of the roster it
+ * stays in place, disabled, so the other arrow does not jump sideways.
+ */
+function PagerLink({
+  to,
+  dir,
+  siteRoot,
+  onOpen,
+}: {
+  to: Aniimo | null;
+  dir: 'prev' | 'next';
+  siteRoot: string;
+  onOpen: (a: Aniimo) => void;
+}) {
+  const arrow = dir === 'prev' ? '←' : '→';
+  const word = dir === 'prev' ? 'Previous' : 'Next';
+
+  if (!to) {
+    return (
+      <span className="detail-pager__link" data-dir={dir} aria-disabled="true">
+        <span aria-hidden="true">{arrow}</span>
+      </span>
+    );
+  }
+
+  const name = displayName(to);
+  return (
+    <a
+      className="detail-pager__link"
+      data-dir={dir}
+      href={`${siteRoot}aniimo/${to.id}/`}
+      rel={dir}
+      title={`${word}: ${name} (${arrow} key)`}
+      onClick={(e) => {
+        if (!plainClick(e)) return;
+        e.preventDefault();
+        onOpen(to);
+      }}
+    >
+      <span aria-hidden="true">{arrow}</span>
+      <span className="sr-only">{word}: </span>
+      <span className="detail-pager__name">{name}</span>
+    </a>
   );
 }
 

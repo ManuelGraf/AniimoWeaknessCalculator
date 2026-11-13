@@ -87,6 +87,13 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
   // The hash is the single source of truth for what is being inspected.
   const selected: Aniimo | null = route.view === 'aniimo' ? (byId.get(route.id) ?? null) : null;
 
+  // Its neighbours in the roster's own order - the order the grid lists them in.
+  const [prev, next] = useMemo(() => {
+    const i = selected ? db.roster.indexOf(selected) : -1;
+    if (i < 0) return [null, null];
+    return [db.roster[i - 1] ?? null, db.roster[i + 1] ?? null];
+  }, [selected, db.roster]);
+
   const elements: Element[] = useMemo(() => {
     if (route.view === 'calc' && route.kind === 'elements') {
       return chart.order.filter((e) => route.elements.includes(e.toLowerCase()));
@@ -150,6 +157,9 @@ function Ready({ db, route, navigate }: { db: Database; route: ReturnType<typeof
               aniimo={selected}
               siteRoot={siteRoot()}
               onRoster={() => navigate({ view: 'roster' })}
+              prev={prev}
+              next={next}
+              onOpen={selectAniimo}
             />
           ) : (
             <p className="empty">
