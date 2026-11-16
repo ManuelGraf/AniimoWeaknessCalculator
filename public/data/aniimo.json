@@ -24991,7 +24991,7 @@
   "skills": [
    {
     "name": "Turbo Boost",
-    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 120% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
+    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 65% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
     "section": "Aniimo Traits",
     "element": null,
     "power": null,
@@ -25079,7 +25079,7 @@
   "skills": [
    {
     "name": "Turbo Boost",
-    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 120% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
+    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 65% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
     "section": "Aniimo Traits",
     "element": null,
     "power": null,
@@ -25166,7 +25166,7 @@
   "skills": [
    {
     "name": "Turbo Boost",
-    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 120% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
+    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 65% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
     "section": "Aniimo Traits",
     "element": null,
     "power": null,
@@ -25236,7 +25236,7 @@
    },
    {
     "name": "Skyward Torrent",
-    "description": "Enters the [Jet Flight] state for 8s. During this time, basic attacks are enhanced, each dealing damage equal to 30 Might. Exits [Jet Flight] when time runs out or after being hit 15 times.",
+    "description": "Enters the [Jet Flight] state for 10s. During this time, basic attacks are enhanced, each dealing damage equal to 30 Might. Exits [Jet Flight] when time runs out or after being hit 15 times.",
     "section": "Innate Skills",
     "element": "Water",
     "power": 30,
@@ -25384,12 +25384,12 @@
    "Cloudreach Falls"
   ],
   "image": "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_1069302.png",
-  "head": "https://aniimoguide.com/images/aniimo/head_round/1069302.webp",
+  "head": "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_PetHead_1069302.png",
   "animation": "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/newVFX/1069302.mp4",
   "skills": [
    {
     "name": "Turbo Boost",
-    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 120% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
+    "description": "Using a skill or Ultimate grants the caster 1 stack of [Turbo Boost], causing the next Basic Attack to deal an additional 65% damage and BREAK. Up to 2 stacks can exist at a time. Upon entering combat, Jeburst gains one Ultimate that costs no resources. This refreshes every 120s.",
     "section": "Aniimo Traits",
     "element": null,
     "power": null,
@@ -25459,7 +25459,7 @@
    },
    {
     "name": "Skyward Torrent",
-    "description": "Enters the [Jet Flight] state for 8s. During this time, basic attacks are enhanced, each dealing damage equal to 30 Might. Exits [Jet Flight] when time runs out or after being hit 15 times.",
+    "description": "Enters the [Jet Flight] state for 10s. During this time, basic attacks are enhanced, each dealing damage equal to 30 Might. Exits [Jet Flight] when time runs out or after being hit 15 times.",
     "section": "Innate Skills",
     "element": "Water",
     "power": 30,
